@@ -90,10 +90,23 @@ def order_site(site=0, count=10, date='newest', ord_number='all'):
     else:
         return render_template('orders.html', orders=orders_data, visible_orders_count=visible_orders_count)
 
-# shows first 1000 orders that can be realized
+# shows orders that can be realized, download list as excel column
 @app.route('/orders/approved/', methods=['POST', 'GET'])
-@app.route('/orders/approved/<site>/', methods=['POST', 'GET'])
-def order_site_approved(site=0):
+def order_site_approved():
+    #  download list of orders in xlsx
+    if request.method == "POST":
+        list_of_order_numbers = []
+        if request.form['forwardBtn'] == 'download_xlsx':
+            orders_data = ZalandoCall().get_approved_orders()
+            single_order_data = [i["data"] for i in orders_data]
+            for order in single_order_data: # get from tab of response order number
+                for numbers in order:
+                    list_of_order_numbers.append(numbers["attributes"]["order_number"])
+        df = pd.DataFrame()
+        df['Order_number'] = list_of_order_numbers
+        df.to_excel('approved_orders.xlsx', index=False)
+        return send_file('approved_orders.xlsx', as_attachment=True)
+
     orders_data = ZalandoCall().get_approved_orders()
     return render_template('orders_approved.html', orders=orders_data)
 
@@ -360,7 +373,7 @@ def orders_worker(delay):
 # workers.run_new_thread(name_of_worker, function, params)
 def thread_starter():
     workers.run_new_thread("ZamowieniaZalando5m", orders_worker, 300)  # runs zalando orders worker
-    #workers.run_new_thread("ZamowieniaMiinto1h", miintoApi.orders_worker_miinto, 3600)  # runs miinto orders worker
+    workers.run_new_thread("ZamowieniaMiinto1h", miintoApi.orders_worker_miinto, 3600)  # runs miinto orders worker
 
 if __name__ == '__main__':
     app.secret_key = ".."
