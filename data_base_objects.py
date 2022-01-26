@@ -1,6 +1,7 @@
 from __main__ import db
 from datetime import datetime
 
+# table with returned order on zalando
 class Returns_db(db.Model):
     id = db.Column('id', db.Integer, primary_key = True)    
     order_number = db.Column('order_number', db.String(30), nullable=False, unique=True)
@@ -13,6 +14,7 @@ class Returns_db(db.Model):
         self.eans = eans
         self.price = price
 
+# table with order on zalando
 class Orders_db(db.Model):
     id = db.Column('id', db.Integer, primary_key = True) 
     order_number = db.Column('order_number', db.String(30), nullable=False, unique=True)
@@ -24,6 +26,7 @@ class Orders_db(db.Model):
         self.data = data
         self.price = price
 
+# table with order on miinto
 class MiintoOrdersDb(db.Model):
     id = db.Column('id', db.Integer, primary_key = True)
     order_number = db.Column('order_number', db.String(30), nullable=False, unique=True)

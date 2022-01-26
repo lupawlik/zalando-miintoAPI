@@ -1,3 +1,5 @@
+# contains all functions communicating with api zalando
+
 import time
 import datetime
 from datetime import timedelta
@@ -22,11 +24,12 @@ class ZalandoCall(ZalandoRequest):
         params['include'] = "order_lines"
         r = self.place_request("GET", "/merchants/{merchant_id}/orders", params)
 
+        # when result are empty
         if not r['data']:
             return "NIE MA TAKIEGO ZAMOWIENIA"
         return r
 
-    # return all orders with "approved" status
+    # return list of all orders with "approved" status
     def get_approved_orders(self):
         params = {
             'page[size]': 1000,
@@ -35,11 +38,13 @@ class ZalandoCall(ZalandoRequest):
             'include': 'order_lines',
             }
         page = 0
-        data_tab = []
+        data_tab = []  # list of response data
+        # add 1 to page and go for all pages when is more than 1000 to view
         while True:
             params['page[number]'] = page
             r = self.place_request("GET", "/merchants/{merchant_id}/orders", params)
             page += 1
+            # when result are empty
             if not r['data']:
                 break
             data_tab.append(r)
@@ -55,14 +60,15 @@ class ZalandoCall(ZalandoRequest):
             }
 
         r = self.place_request("GET", "/merchants/{merchant_id}/orders", params)
-        #print(f'Wyszukiwanie zamowien, request status: {r.reason}')
         try:
             return r
         except:
             return 0
 
-    # take
+    # takes ean and return all product by ean
+    # uses graphql templates
     def get_all_product_by_one_ean(self, ean):
+        # body to search by ean
         query_template = Template("""
         {
           psr {
@@ -87,11 +93,14 @@ class ZalandoCall(ZalandoRequest):
           }
         }
             """)
+
+        # graphql template declaration
         query = query_template.substitute(item=ean, merchant_id=self.merchant_id)
         params = {'query': query}
         r = self.place_request("POST", "/graphql", params)
-        if not r['data']['psr']['product_models']['items']:
+        if not r['data']['psr']['product_models']['items']:  # if product not exist
             return ""
+        # return zalando id of product by ean, used in another request to search all eans of one product
         simple_id = r['data']['psr']['product_models']['items'][0]['product_configs'][0]['product_simples'][0]['zalando_product_simple_id'][0:13]
 
         query_template = Template("""
@@ -135,12 +144,14 @@ class ZalandoCall(ZalandoRequest):
         query = query_template.substitute(item=simple_id, merchant_id=self.merchant_id)
         params = {'query': query}
         r = self.place_request("POST", "/graphql", params)
+        # return all products in final_date list
         r = r['data']['psr']['product_models']['items'][0]['product_configs'][0]['product_simples']
         final_data = []
         for product in r:
             final_data.append(product)
         return final_data
 
+    # return ean and info about product by product_code
     def get_ean(self, product_code):
         query_template = Template("""
             {
@@ -173,25 +184,30 @@ class ZalandoCall(ZalandoRequest):
               }
             }
                 """)
+        # these query returns price/ean/simpleid
         query = query_template.substitute(item=product_code, merchant_id=self.merchant_id)
         params = {'query': query}
         r = self.place_request("POST", "/graphql", params)
         return r
 
+    # takes order number or data from get_orders() to order_number param.
+    # if data from get_orders(), from_data param need to be True
+    # returns list of dict of every order given (order details and all id)
     def get_details_of_order(self, order_number, from_data=False):
-
-            if not from_data:
+            if not from_data:  # when user give order_number
                 orders_data = self.get_orders(0, 1, "newest", order_number)
-            elif from_data:
-                orders_data = order_number  # if user pass as parameter order information
-            if orders_data == 'NIE MA TAKIEGO ZAMOWIENIA':
+            elif from_data:  # if user pass data from get_orders() instead order_number
+                orders_data = order_number
+            if orders_data == 'NIE MA TAKIEGO ZAMOWIENIA':  # when order data are empty
                 return 'NIE MA TAKIEGO ZAMOWIENIA'
 
             order_id = orders_data['data'][0]['id']
 
-            item_lines_ids = []
-            item_ids = []
-            order_details = {"orders":[]}
+            item_lines_ids = []  # contains zalando lines id of order
+            item_ids = []  # contains zalando items id of order
+            order_details = {"orders":[]}  # contains list of dict of order detail
+
+            # go for every order in list
             for i in range(len(orders_data['included'])):
                 item_lines_ids.append(orders_data['included'][i]['attributes']['order_line_id'])
                 item_ids.append(orders_data['included'][i]['attributes']['order_item_id'])
@@ -199,19 +215,24 @@ class ZalandoCall(ZalandoRequest):
                 url = "/merchants/{merchant_id}"+f"/orders/{order_id}/items/{item_ids[i]}"
                 item_data = self.place_request("GET", url)
 
+                # get ean/price/simpleid from article id
                 item_code = item_data['data']['attributes']['article_id']         
                 item_ean = self.get_ean(item_code)
 
                 try:
+                    # price in order and eans in order
                     price = item_ean['data']['psr']['product_models']['items'][0]['product_configs'][0]['product_simples'][0]['offers'][0]['price']['regular_price']['amount']
                     item_ean = item_ean['data']['psr']['product_models']['items'][0]['product_configs'][0]['product_simples'][0]['ean']
                 
-                except:
+                except:  # when get_ean request failure
                     item_ean = "Nie mozna wczytac eanu"
                     price = "0"
+
+                # add record to list of order
                 order_details['orders'].append(
                     {
                         f"{i+1}": {
+                            # order details contains detail, id details contains all necessary ids and order number
                             "order_details":{
                                 "article_id": item_data['data']['attributes']['article_id'],
                                 "description": item_data['data']['attributes']['description'],
@@ -229,9 +250,10 @@ class ZalandoCall(ZalandoRequest):
                             }
                         }           
                     )
-            return order_details
+            return order_details  # will return list of dict specified above
 
-    def update_status_to_returned(self, order_data, reason=0): #takes get_details_of_order() datas
+    # order_data = takes get_details_of_order(), reasons are specified in html file
+    def update_status_to_returned(self, order_data, reason=0):
         order_id = order_data["order_id"]
         line_id = order_data["order_line_id"]
         item_id = order_data["order_item_id"]
@@ -248,7 +270,7 @@ class ZalandoCall(ZalandoRequest):
                      }
                   }
         url = "/merchants/{merchant_id}"+f"/orders/{order_id}/items/{item_id}/lines/{line_id}"
-
+        # request to set status of items in order to "returned"
         r = self.place_request("PATCH", url, payload)
         if r.ok:
             mess = f"[{order_number}]Status poprawnie zaktualizowany na Returned"
@@ -259,8 +281,8 @@ class ZalandoCall(ZalandoRequest):
             print(mess)
             return mess
 
+    # update labels and status of order
     def update_tracking(self, order_number, tracking_number, return_tracking_number, status):
-
         data = self.get_orders(0, 1, "newest", order_number)
         order_id = data['data'][0]['id']
 
@@ -276,11 +298,12 @@ class ZalandoCall(ZalandoRequest):
                      }
                    }
                  }
-        r = self.place_request("PATCH", link, payload)
+        r = self.place_request("PATCH", link, payload) # add tracking
 
-        if status != "":
+        if status != "": # when user want to add trackings AND change status
             time.sleep(5)  # from zalando documentation
-            result = self.get_details_of_order(data, True)
+            result = self.get_details_of_order(data, True)  # loads details of order from given data set
+
             for i, v in enumerate(result["orders"]):
                 order_id = result["orders"][i][str(i+1)]["id_details"]["order_id"]
                 line_id = result["orders"][i][str(i+1)]["id_details"]["order_line_id"]
@@ -297,5 +320,5 @@ class ZalandoCall(ZalandoRequest):
                         }
                       }
                     }
-                r = self.place_request("PATCH", link, payload)
+                r = self.place_request("PATCH", link, payload)  # set status
                 return r

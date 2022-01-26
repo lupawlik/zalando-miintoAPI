@@ -40,6 +40,7 @@ def kill_worker(name=None):
     return jsonify({'Workery mozliwe do zatrzymania': workers.get_list_of_threads(),
                     'Podaj nazwe w linku np': 'http://127.0.0.1:5000/kill_worker/nazwa'})
 
+
 # main page of app, shows number of orders, returns and names of running workers
 @app.route('/')
 def index():
