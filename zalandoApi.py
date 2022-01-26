@@ -51,6 +51,7 @@ def index():
     # get number of orders and returns from zalando, print in html
     db_df = pd.read_sql_query(f"SELECT COUNT(id) FROM returns_db WHERE date(date) BETWEEN date('{today_first}') AND date('{today_end}')", conn)
     returns_number = str(db_df['COUNT(id)'][0])
+
     db_df = pd.read_sql_query(f"SELECT COUNT(id) FROM orders_db WHERE date(date) BETWEEN date('{today_first}') AND date('{today_end}')", conn)
     orders_number = str(db_df['COUNT(id)'][0])
 
