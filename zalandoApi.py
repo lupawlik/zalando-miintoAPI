@@ -92,7 +92,8 @@ def order_site(site=0, count=10, date='newest', ord_number='all'):
 
 # shows first 1000 orders that can be realized
 @app.route('/orders/approved/', methods=['POST', 'GET'])
-def order_site_approved():
+@app.route('/orders/approved/<site>/', methods=['POST', 'GET'])
+def order_site_approved(site=0):
     orders_data = ZalandoCall().get_approved_orders()
     return render_template('orders_approved.html', orders=orders_data)
 
@@ -183,10 +184,16 @@ tracking_to_import = 0
 def zalando_labels_worker(data_set, worker_name):
     global done_tracking
     global tracking_to_import
+    report = []
     for i in data_set:
         print(f"Adding tracking {i[1]}, return tracking {i[2]} to order {i[0]}")
-        ZalandoCall().update_tracking(i[0], i[1], i[2], "shipped")
+        try:
+            r = ZalandoCall().update_tracking(i[0], i[1], i[2], "shipped")
+            report.append((i[0], r.status_code))
+        except:
+            report.append((i[0], "404"))
         done_tracking +=1
+    print(report)
     workers.del_from_list(worker_name)
     done_tracking = 0
     tracking_to_import = 0

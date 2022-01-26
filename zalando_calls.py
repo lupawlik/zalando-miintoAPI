@@ -34,10 +34,16 @@ class ZalandoCall(ZalandoRequest):
             'order_status': 'Approved',
             'include': 'order_lines',
             }
-        r = self.place_request("GET", "/merchants/{merchant_id}/orders", params)
-        if not r['data']:
-            return "NIE MA TAKIEGO ZAMOWIENIA"
-        return r
+        page = 0
+        data_tab = []
+        while True:
+            params['page[number]'] = page
+            r = self.place_request("GET", "/merchants/{merchant_id}/orders", params)
+            page += 1
+            if not r['data']:
+                break
+            data_tab.append(r)
+        return data_tab
 
     # return order from last hour, used in zalando orders worker
     def get_last_hour_orders(self):
@@ -292,4 +298,4 @@ class ZalandoCall(ZalandoRequest):
                       }
                     }
                 r = self.place_request("PATCH", link, payload)
-                print(r)
+                return r

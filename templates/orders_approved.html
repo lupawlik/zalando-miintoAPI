@@ -36,7 +36,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for order in orders.data%}
+                {% for i in orders%}
+                    {% set page = loop.index %}
+                    {% for order in i.data%}
                         {% set order_nr = order.attributes.order_number %}
                         {% set order_country = order.attributes.locale %}
                         {% set order_price = order.attributes.order_lines_price_amount %}
@@ -51,8 +53,9 @@
 
                         <tr>
                         {% if color != "brak danych"%}
+                            {% set order_number = (loop.index+(1000*page))-1000 %}
                             {% if color == "green" %}
-                                <td style="background-color: #b6d7a8;"><b>{{loop.index}}</b></td>
+                                <td style="background-color: #b6d7a8;"><b>{{order_number}}</b></td>
                                 <td style="background-color: #b6d7a8;">{{order_nr}}</td>
                                 {% if json_data is defined %}
                                     <td style="background-color: #b6d7a8;">
@@ -65,7 +68,7 @@
                                 <td style="background-color: #b6d7a8;">{{change_time(delivery_end_date)}}</td>
 
                             {% elif color == "red" %}
-                                <td style="background-color: #ea9999;"><b>{{loop.index}}</b></td>
+                                <td style="background-color: #ea9999;"><b>{{order_number}}</b></td>
                                 <td style="background-color: #ea9999;">{{order_nr}}</td>
                                 {% if json_data is defined %}
                                     <td style="background-color: #ea9999;">
@@ -109,6 +112,7 @@
                         {% endif %}
                         </tr>
                     {% endfor %}
+                {% endfor %}
                 <tbody>
             </table>
         </div>
