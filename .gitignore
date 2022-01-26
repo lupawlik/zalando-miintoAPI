@@ -1,6 +1,8 @@
 /venv/
-*.txt
-.idea
-/mrktplc_data.db
-*.xlsx
 /pw.yaml
+/mrktplc_data.db
+*.txt
+*.xlsx
+.idea
+
+
