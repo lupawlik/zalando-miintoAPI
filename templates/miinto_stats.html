@@ -1,0 +1,190 @@
+
+
+
+<head>
+  <meta charset="utf-8" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+
+<body>
+    <div class="navbar">
+    <a class="previous" href ="/miinto/stats/">Wszystkie rynki</a>
+    <a class="previous" href ="/miinto/stats/dk">Dania</a>
+    <a class="previous" href ="/miinto/stats/nl">Holandia</a>
+    <a class="previous" href ="/miinto/stats/pl">Polska</a>
+    <a class="previous" href ="/miinto/stats/se">Szwecja</a>
+    </div>
+    <h1 style="text-align: center;">Wszystkie rynki miinto - okres: </h1>
+    <form action="{{ url_for('miint_stats', country="all") }}" method="post">
+        <input type="month" id="month" name="month" min="2021-12" value="2021-12">
+        <input type="submit"></br>
+        Wyswietl wszysto <input type="checkbox" id="all" name="all">
+    </form>
+    <canvas id="myChart" width="780" height="520" style = "float: left;"></canvas>
+    <canvas id="myChart2" width="780" height="520" style = "float: left;"></canvas>
+    <canvas id="myChart3" width="780" height="520" style = "float: left;"></canvas>
+    <canvas id="myChart4" width="780" height="520" style = "float: left;"></canvas>
+    <script>
+        var ctx = document.getElementById('myChart').getContext('2d');
+        var lineChart = new Chart(ctx, {
+            type: "bar",
+            data:{
+                labels: {{labels|safe}},
+                datasets: [
+                    {
+                        label: "Liczba zamowien",
+                        data: {{values|safe}},
+                        fill: false,
+                        backgroundColor: [
+                              "rgb(162, 223, 233)",
+                              'rgb(255, 99, 132)',
+                              'rgb(54, 162, 235)',
+                              'rgb(255, 205, 86)',
+                              'rgb(136, 176, 75)',
+                              'rgb(247, 202, 201)',
+                              'rgb(146, 168, 209)',
+                              'rgb(0, 155, 119)',
+                              'rgb(91, 94, 166)',
+                              'rgb(223, 207, 190)',
+                              'rgb(195, 68, 122)',
+                            ],
+                        lineTension: 0.1,
+                    }
+                ]
+            },
+            options: {
+                responsive: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Ilosc zamowien - {{sum}}',
+                        padding: {
+                            top: 10,
+                            bottom: 30
+                        },
+                         font: {
+                            size: 30
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+    <script>
+        var ctx2 = document.getElementById('myChart2').getContext('2d');
+        var lineChart = new Chart(ctx2, {
+            type: "line",
+            data:{
+                labels: {{date_labels|safe}},
+                datasets: [
+                    {
+                        label: "Liczba zamowien",
+                        data: {{values_o_number|safe}},
+                        fill: false,
+                        borderColor: "rgb(75, 192, 192)",
+                        lineTension: 0.1,
+                        
+                    }
+                ]
+            },
+            options: {
+                responsive: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Ilosc zamowien dziennie (srednio {{avg_order_number}})',
+                        padding: {
+                            top: 10,
+                            bottom: 30
+                        },
+                         font: {
+                            size: 30
+                        }
+                    }
+                },
+            }
+        });
+    </script>
+    <script>
+        var ctx3 = document.getElementById('myChart3').getContext('2d');
+        var lineChart = new Chart(ctx3, {
+            type: "doughnut",
+            data:{
+                labels: {{labels|safe}},
+                datasets: [
+                    {
+                        label: "Liczba zamowien",
+                        data: {{percent_per_country|safe}},
+                        fill: false,
+                        backgroundColor: [
+                              "rgb(162, 223, 233)",
+                              'rgb(255, 99, 132)',
+                              'rgb(54, 162, 235)',
+                              'rgb(255, 205, 86)',
+                              'rgb(136, 176, 75)',
+                              'rgb(247, 202, 201)',
+                              'rgb(146, 168, 209)',
+                              'rgb(0, 155, 119)',
+                              'rgb(91, 94, 166)',
+                              'rgb(223, 207, 190)',
+                              'rgb(195, 68, 122)',
+                            ],
+                        lineTension: 0.1,
+                    }
+                ]
+            },
+            options: {
+                responsive: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Dominacja rynkow w % (ilosc zamowien)',
+                        padding: {
+                            top: 10,
+                            bottom: 30
+                        },
+                         font: {
+                            size: 30
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+    <script>
+        var ctx4 = document.getElementById('myChart4').getContext('2d');
+        var lineChart = new Chart(ctx4, {
+            type: "line",
+            data:{
+                labels: {{date_labels|safe}},
+                datasets: [
+                    {
+                        label: "Kwoty zamowien PLN",
+                        data: {{summary_prices_pln|safe}},
+                        fill: false,
+                        borderColor: "rgb(228, 217, 111)",
+                        lineTension: 0.1,
+                    }
+                ]
+            },
+            options: {
+                responsive: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Kwoty zamowien w PLN {{sum_in_pln}}',
+                        padding: {
+                            top: 10,
+                            bottom: 30
+                        },
+                         font: {
+                            size: 30
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <title>Zalando - zamowienia</title>
+    <script>
+        function show_json(){
+            var element = document.getElementById("json_data");
+              if (element.style.display === "none") {
+                    element.style.display = "block";
+                  } 
+              else {
+                    element.style.display = "none";
+                  }
+        }
+
+    </script>
+    <style>
+    #title_left{
+        float: left;
+        width: 50%;
+    }
+    #title_right{
+        float: left;
+        text-align: right;
+        width: 50%;
+    }
+    #form_clear{
+        clear: both; 
+    }
+    </style>
+  </head>
+  <body>
+    <div class="navbar">
+      <a href="/" class="previous"><b>ZALANDO</b></a> 
+      <a href="/orders/" class="previous">Zamowienia</a> 
+      <a href="/returns/" class="previous">Wyswietl produtky / zwroty</a>
+      <a href="/products/" class="previous">Podglad ofert po ean</a>
+      <div class="dropdown">
+        <button class="dropbtn">Trackingi
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="/tracking/" class="previous">Dodaj trackingi/statusy</a> 
+          <a href="/tracking/adjustment">Korekty</a>
+        </div>
+      </div>
+    </div>
+      <div id="title_left">
+        <h1>Zamowienia w zalando</h1>
+      </div>
+      <div id="title_right">
+        <a style ="font-size: 25px;" href = '/orders/approved/'>Pokaz zamowienia wymagajace realizacji</a>
+      </div>
+      <form action="/orders/" method="post" id = "form_clear">
+
+          <p>
+              Ile na stronie:
+              <select id="number_of_orders" name="number_of_orders">
+                  <option value="1">1</option>
+                  <option value="5">5</option>
+                  <option value="10" selected="selected">10</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="200">200</option>
+                  <option value="500">500</option>
+                  <option value="1000">1000</option>
+              </select>
+          </p>
+          <p>
+              Kolejnosc wyswietlania:
+              <select id="order" name="date_of_order">
+                  <option value="newest">Od najnowszych</option>
+                  <option value="oldest">Od najstarszych</option>
+
+              </select>
+          </p>
+          <p>
+              Numer zamowienia(opcjonalne):
+              <input type="number" min="1" id="order_number_input" name="order_number_input">
+          </p>
+          <button value="go" name="forwardBtn" type="submit">Wczytaj</button>
+      </form>
+      <form method="post">
+          <button value="prev" name="forwardBtn" type="submit">Poprzednia</button>
+          <button value="nex" name="forwardBtn" type="submit">Nastepna</button>
+      </form>
+      {% if orders=='NIE MA TAKIEGO ZAMOWIENIA'%}
+        <div class="table-wrapper">
+            <table class="order_table" style="border: 1px solid black;">
+                <thead><tr><th>Komunikat<th><tr><thead>
+                <tbody><tr><td>Nie ma takiego zamowienia w zalando.<td><tr></tbody>
+        </div>
+      {% else %}
+        <div class="table-wrapper">
+            <table class="order_table" style="border: 1px solid black;">
+            
+                <thead>
+                    <tr>
+                        <th><b>Zamowienie</b></th>
+                        <th>Kraj</th>
+                        <th>Numer zamowienia</th>
+                        <th>Kwota do zaplaty</th>
+                        <th>Numer trackingowy</th>
+                        <th>Numer trackingowy - powrotny</th>
+                        <th>Status w zalando</th>
+                        {% if json_data is defined %}
+                        <th>Status produktow</th>
+                        {% endif %}
+                        <th>Dane</th>
+                        <th>Data zamowienia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders.data%}
+                        {% set order_nr = order.attributes.order_number %}
+                        {% set order_country = order.attributes.locale %}
+                        {% set order_price = order.attributes.order_lines_price_amount %}
+                        {% set order_price_currency = order.attributes.order_lines_price_currency %}
+                        {% set delivery_end_date = order.attributes.delivery_end_date %}
+                        {% set order_tracking = order.attributes.tracking_number %}
+                        {% set order_tracking_return = order.attributes.return_tracking_number %}
+                        {% set order_time = order.attributes.created_at %}
+                        {% set order_status = order.attributes.status %}
+                        {% set first_name = order.attributes.shipping_address.first_name %}
+                        {% set last_name = order.attributes.shipping_address.last_name %}
+                        {% set address_line = order.attributes.shipping_address.address_line_1 %}
+
+                        <tr>
+                            {% if visible_orders_count[0] == 0 %}
+                            <td><b>{{loop.index}}</b></td>
+                            {% else %}
+                            <td><b>{{loop.index+((visible_orders_count[0])*visible_orders_count[1])}}</b></td>
+                            {% endif %}
+                            <td>{{order_country}}</td>
+                            <td>{{order_nr}}</td>
+                            <td>{{order_price}} {{order_price_currency}}</td>
+                            <td>{{order_tracking}}</td>
+                            <td>{{order_tracking_return}}</td>
+                            <td>{{order_status}}</td>
+                            {% if json_data is defined %}
+                            <td>
+                                {% for item in orders.included %}
+                                {{item.attributes.status}}
+                                {% endfor %}
+                            </td>
+                            {% endif %}
+                            <td>{{first_name}} {{last_name}}, {{address_line}}</td>
+                            <td>{{change_time(order_time)}}</td>
+                        </tr>
+                    {% endfor %}
+                <tbody>
+            </table>
+        </div>
+        <div class="table-wrapper">
+            {% if json_data is defined %}
+            <h2>Dokladne dane:</h2>
+            <table class="order_table" style="border: 1px solid black;">
+                <thead>
+                    <tr>
+                        <th>Imie i nazwisko</b></th>
+                        <th>Aders</th>
+                        <th>Miasto</th>
+                        <th>Kod pocztowy</th>
+                        <th>Kraj</th>
+                        <th>Kwota do zaplaty</th>
+                        <th>Mail</th>
+                        <th>Zamowione</th>
+                        <th>Czas na dostawe do</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{{orders.data[0].attributes.shipping_address.first_name}} {{orders.data[0].attributes.shipping_address.last_name}}</td>
+                        <td>{{orders.data[0].attributes.shipping_address.address_line_1}}</td>
+                        <td>{{orders.data[0].attributes.shipping_address.city}}</td>
+                        <td>{{orders.data[0].attributes.shipping_address.zip_code}}</td>
+                        <td>{{orders.data[0].attributes.shipping_address.country_code}}</td>
+                        <td>{{orders.data[0].attributes.order_lines_price_amount}} {{orders.data[0].attributes.order_lines_price_currency}}</td>
+                        <td>{{orders.data[0].attributes.customer_email}}</td>
+                        <td>{{change_time(orders.data[0].attributes.created_at)}}</td>
+                        <td>{{change_time(orders.data[0].attributes.delivery_end_date)}}</td>
+                    </tr>
+                </tbody>
+                <br>
+            </table>
+            <h2 onclick="show_json()" style="cursor:pointer;">Pokaz wszystkie dane JSON dla tego zamowienia</h2>
+            <p id="json_data" style="display: none">{{ json_data }}</p>
+            {% endif %}
+        </div>
+      {% endif %}
+  </body>
+</html>

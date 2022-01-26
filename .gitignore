@@ -1,0 +1,6 @@
+/venv/
+*.txt
+.idea
+/mrktplc_data.db
+/returns_raport.xlsx
+/pw.yaml

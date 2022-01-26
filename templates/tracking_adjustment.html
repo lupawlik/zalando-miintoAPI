@@ -1,0 +1,91 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <META HTTP-EQUIV="content-type" CONTENT="text/html; charset=utf-8">
+    <title>Korekty etykiet - trackingi</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <style>
+    .half{
+        width:50%;
+        float: left;
+
+    }
+    input:read-only { color:grey; }
+    </style>
+  </head>
+<body>
+     <div class="navbar">
+      <a href="/" class="previous"><b>ZALANDO</b></a> 
+      <a href="/orders/" class="previous">Zamowienia</a> 
+      <a href="/returns/" class="previous">Wyswietl produtky / zwroty</a>
+      <a href="/products/" class="previous">Podglad ofert po ean</a>
+      <div class="dropdown">
+        <button class="dropbtn">Trackingi
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="/tracking/" class="previous">Dodaj trackingi/statusy</a> 
+          <a href="/tracking/adjustment">Korekty</a>
+        </div>
+      </div>
+    </div>
+  <h1>W TRAKCIE BUDOWY</h1>
+  <h1>Korekty etykiet - trackingi</h1>
+  <h3>Kliknij na wybrany numer zeby podac poprawne dane do etykiety</h3>
+  <div class='half'>
+      <div class="table-wrapper">
+        <table class="order_table">
+            <thead>
+                <tr>
+                    <th>Numer zawowienia wymagajcy korekty</th>
+                </tr>
+            </thead>
+            <tbody>
+
+              {% for i in range(data|length)%}
+                <tr>
+                <td><a href='/tracking/adjustment/{{data[i]}}' >{{data[i]}}</a></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+        </table>
+      </div>
+  </div>
+
+  <div class='half'>
+    {% if order_number != '' %}
+        <h1 style ="text-align: center;">Korygowanie zamowienia numer {{order_number}}</h1>
+        {% if order_details != '' %}
+            <h3>Zmien tylko te pola przy ktorych chcesz wprowadzic korekte, poprawne zostaw bez zmian</h3>
+            <form action="/tracking/adjustment/" method="post">
+                <p>Numer klietna: </p>
+                {% set address = order_details.data[0].attributes.shipping_address.address_line_1 %}4
+                <input type = "text", name = "customer_number" value="{{order_details.data[0].attributes.customer_number}}" readonly>
+                <p>Imie: </p>
+                {% set address = order_details.data[0].attributes.shipping_address.address_line_1 %}
+                <input type = "text", name = "name" value="{{order_details.data[0].attributes.shipping_address.first_name}}">
+                <p>Nazwisko: </p>
+                <input type = "text", name = "surname" value="{{order_details.data[0].attributes.shipping_address.last_name}}">                
+                <p>Adres: </p>
+                <input type = "text", name = "address" value="{{order_details.data[0].attributes.shipping_address.address_line_1}}">                
+                <p>Miasto:  </p>
+                <input type = "text", name = "city" value="{{order_details.data[0].attributes.shipping_address.city}}">
+                <p>Kod pocztowy: </p>
+                <input type = "text", name = "zip_code" value="{{order_details.data[0].attributes.shipping_address.zip_code}}">                
+                <p>Kraj: </p>
+                <input type = "text", name = "country" value="{{order_details.data[0].attributes.shipping_address.country_code}}">
+                <p>Mail: </p>
+                <input size="35" type = "text", name = "mail" value="{{order_details.data[0].attributes.customer_email}}"></br>
+                <p>Produkty (ean): </p>
+                {% for ean in ean_list%}
+                    <input size="35" type = "text", name = "ean_list" value="{{ean}}"></br>
+                {% endfor %}
+                
+                <p><button name="forwardBtn" value="submit_new_data" onclick="return confirm('Chcesz przeslac ponizsze dane?')" type="submit">Przeslij nowe dane</button></p>
+                
+            </form>
+        {% endif %}
+    {% endif %}
+  </div>
+</body>
+</html>

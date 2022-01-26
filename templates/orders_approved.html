@@ -1,0 +1,117 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <title>Zalando - zamowienia</title>
+    <script>
+
+    </script>
+  </head>
+  <body>
+     <div class="navbar">
+      <a href="/" class="previous"><b>ZALANDO</b></a> 
+      <a href="/orders/" class="previous">Zamowienia</a> 
+      <a href="/returns/" class="previous">Wyswietl produtky / zwroty</a>
+      <a href="/products/" class="previous">Podglad ofert po ean</a>
+      <div class="dropdown">
+        <button class="dropbtn">Trackingi
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="/tracking/" class="previous">Dodaj trackingi/statusy</a> 
+          <a href="/tracking/adjustment">Korekty</a>
+        </div>
+      </div>
+    </div>
+    <a href = '/orders/'>Powrot do zamowien</a>
+        <div class="table-wrapper">
+            <table class="order_table" style="border: 1px solid black;">
+            
+                <thead>
+                    <tr>
+                        <th><b>Zamowienie</b></th>
+                        <th>Numer zamowienia</th>
+                        <th>Data zamowienia</th>
+                        <th>Do kiedy zrealizowac</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders.data%}
+                        {% set order_nr = order.attributes.order_number %}
+                        {% set order_country = order.attributes.locale %}
+                        {% set order_price = order.attributes.order_lines_price_amount %}
+                        {% set order_price_currency = order.attributes.order_lines_price_currency %}
+                        {% set delivery_end_date = order.attributes.delivery_end_date %}
+                        {% set order_time = order.attributes.created_at %}
+                        {% set order_status = order.attributes.status %}
+                        {% set first_name = order.attributes.shipping_address.first_name %}
+                        {% set last_name = order.attributes.shipping_address.last_name %}
+                        {% set address_line = order.attributes.shipping_address.address_line_1 %}
+                        {% set color = get_time_delay(delivery_end_date) %}
+
+                        <tr>
+                        {% if color != "brak danych"%}
+                            {% if color == "green" %}
+                                <td style="background-color: #b6d7a8;"><b>{{loop.index}}</b></td>
+                                <td style="background-color: #b6d7a8;">{{order_nr}}</td>
+                                {% if json_data is defined %}
+                                    <td style="background-color: #b6d7a8;">
+                                        {% for item in orders.included %}
+                                        {{item.attributes.status}}
+                                        {% endfor %}
+                                    </td>
+                                {% endif %}
+                                <td style="background-color: #b6d7a8;">{{change_time(order_time)}}</td>
+                                <td style="background-color: #b6d7a8;">{{change_time(delivery_end_date)}}</td>
+
+                            {% elif color == "red" %}
+                                <td style="background-color: #ea9999;"><b>{{loop.index}}</b></td>
+                                <td style="background-color: #ea9999;">{{order_nr}}</td>
+                                {% if json_data is defined %}
+                                    <td style="background-color: #ea9999;">
+                                        {% for item in orders.included %}
+                                        {{item.attributes.status}}
+                                        {% endfor %}
+                                    </td>
+                                {% endif %}
+                                <td style="background-color: #ea9999;">{{change_time(order_time)}}</td>
+                                <td style="background-color: #ea9999;"><b>{{change_time(delivery_end_date)}}</b></td>
+
+                            {% elif color == "yellow" %}
+                                <td style="background-color: #ffe699;"><b>{{loop.index}}</b></td>
+                                <td style="background-color: #ffe699;">{{order_nr}}</td>
+                                {% if json_data is defined %}
+                                    <td style="background-color: #ffe699;">
+                                        {% for item in orders.included %}
+                                        {{item.attributes.status}}
+                                        {% endfor %}
+                                    </td>
+                                {% endif %}
+                                <td style="background-color: #ffe699;">{{change_time(order_time)}}</td>
+                                <td style="background-color: #ffe699;">{{change_time(delivery_end_date)}}</td>
+
+                            {% elif color == "black" %}
+                                <td style="background-color: #999999;"><b>{{loop.index}}</b></td>
+                                <td style="background-color: #999999;">{{order_nr}}</td>
+                                {% if json_data is defined %}
+                                    <td style="background-color: #999999;">
+                                        {% for item in orders.included %}
+                                        {{item.attributes.status}}
+                                        {% endfor %}
+                                    </td>
+                                {% endif %}
+                                <td style="background-color: #999999;">{{change_time(order_time)}}</td>
+                                <td style="background-color: #999999;">{{change_time(delivery_end_date)}}</td>
+
+                            {% else %}
+                                <td>{{change_time(delivery_end_date)}}</td>
+                            {% endif %}
+                        {% endif %}
+                        </tr>
+                    {% endfor %}
+                <tbody>
+            </table>
+        </div>
+       
+  </body>
+</html>

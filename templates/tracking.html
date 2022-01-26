@@ -1,0 +1,50 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Trackingi / statusy </title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  </head>
+<body>
+     <div class="navbar">
+      <a href="/" class="previous"><b>ZALANDO</b></a> 
+      <a href="/orders/" class="previous">Zamowienia</a> 
+      <a href="/returns/" class="previous">Wyswietl produtky / zwroty</a>
+      <a href="/products/" class="previous">Podglad ofert po ean</a>
+      <div class="dropdown">
+        <button class="dropbtn">Trackingi
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="/tracking/" class="previous">Dodaj trackingi/statusy</a> 
+          <a href="/tracking/adjustment">Korekty</a>
+        </div>
+      </div>
+    </div>
+  <h1>Trackingi i statusy</h1>
+  <h3>Uzueplnij ponizsze pola zeby zaktaulizowac status zamowienia</h3>
+  <form action="/tracking/" method="post" enctype="multipart/form-data">
+      <p>
+          <p>Numer zamowienia:
+          <input type="number" min="1" id="order_id" name="order_id" ></p>
+          <p>Numer trackingowy:
+          <input type="number" min="1" id="track_num" name="track_num" ></p>
+          <p>Numer trackingowy - zwrotny:
+          <input type="number" min="1" id="ret_track" name="ret_track" ></p>
+          <p>Status:
+          <select id="status" name="status">
+              <option value="shipped" selected="selected">Zrealizowany</option>
+              <option value="canceled">Anulowany</option>
+              <option value="">Nie ustawiaj statusu</option>
+          </select></p>
+      </p>
+      <button name="forwardBtn" value="single_upload" type="submit">Dodaj trackingi i ustaw status</button><br><br><br><br>
+  </form>
+  <form action="/tracking/" method="post" enctype="multipart/form-data">
+      <input type="file"  id="excel_file" name="file" accept=".xlsx, .xls" required><br><br>
+      Mail: <input type="email" name = "mail"> Opcjonalne - po zakonczonym imporcie zostanie wyslany mail z raportem na podany adres<br><br>
+
+      <button name="forwardBtn" value="multiple_upload" type="submit">Importuj plik</button><br><br><br>
+      Zaimportowano {{tracking_upload_status}}/{{number_to_import}}
+  </form>
+</body>
+</html>

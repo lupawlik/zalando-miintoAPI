@@ -1,0 +1,90 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Zalando - ceny</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <script type="text/javascript"></script>
+</head>
+<body>
+     <div class="navbar">
+      <a href="/" class="previous"><b>ZALANDO</b></a> 
+      <a href="/orders/" class="previous">Zamowienia</a> 
+      <a href="/returns/" class="previous">Wyswietl produtky / zwroty</a>
+      <a href="/products/" class="previous">Podglad ofert po ean</a>
+      <div class="dropdown">
+        <button class="dropbtn">Trackingi
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="/tracking/" class="previous">Dodaj trackingi/statusy</a> 
+          <a href="/tracking/adjustment">Korekty</a>
+        </div>
+      </div>
+    </div>
+    <h1>Zwroty z zalando</h1>
+    <form action="/returns/" method="post">
+
+        <p>
+            Numer zamowienia:
+            <input type="number" min="1" id="order_id" name="order_id" required>
+        </p>
+        <button name="forwardBtn" value="search" type="submit">Wyswietl produkty z tego zamowienia</button>
+    </form>
+    {% if product_list is defined %}
+    <br><h2>Przedmioty z zamowienia:</h2>
+    <h3>Zeby zwrocic przedmiot - zaznacz te produtky ktore zostaly zwrocone, nastepnij nacisnij przycisk 'zmien status':</h3>
+    <form action="/returns/" method="post" id="form2" name="form2">
+        <div class="table-wrapper">
+            <table class="order_table">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" onClick="toggle(this)"/></th>
+                        <th>Przedmiot</th>
+                        <th>Kod oferty w zalando</th>
+                        <th>Nazwa i opis towaru</th>
+                        <th>Zamowiona ilosc</th>
+                        <th>Zwrocona ilosc</th>
+                        <th>Ean</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if product_list == "NIE MA TAKIEGO ZAMOWIENIA"%}
+                    <tr>
+                        <td>Nie ma takiego zamowienia</td>
+                    </tr>
+                    {% else %}
+                    {% for product in product_list %}
+                    <tr ondblclick="selectRow(this)">
+                        {% set product_data = product.split(',') %}
+                        <td><input type="checkbox" class="product_input" name="product_input" value={{loop.index}}></td>
+                        {% for single_data in product_data %}
+                        <td>{{single_data}}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        <p>
+            Powod zwrotu(opcjonalny):
+            <select id="return_reason" name="return_reason">
+                <option value="0" selected="selected">Nieznany powod</option>
+                <option value="1">Nie podoba sie</option>
+                <option value="2">Za duzy rozmiar</option>
+                <option value="3">Za maly rozmiar</option>
+                <option value="4">Problem z zaplata</option>
+                <option value="5">Zbyt pozna dostawa</option>
+                <option value="6">Niezgodny ze zdjeciem</option>
+                <option value="9">Zly towar</option>
+                <option value="10">Wadliwy towar</option>
+            </select>
+        </p>
+        <button name="forwardBtn" value="process" type="submit">Zmien status</button>
+    </form>
+    {% endif %}
+    {% if action_info is defined %}
+    <h2>{{action_info}}</h2>
+    {% endif %}
+</body>
+</html>
