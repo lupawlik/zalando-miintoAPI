@@ -1,0 +1,36 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Blokowanie ofert </title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  </head>
+<body>
+     <div class="navbar">
+      <a href="/" class="previous"><b>ZALANDO</b></a> 
+      <a href="/orders/" class="previous">Zamowienia</a> 
+      <a href="/returns/" class="previous">Wyswietl produtky / zwroty</a>
+      <a href="/products/" class="previous">Podglad ofert po ean</a>
+      <div class="dropdown">
+        <button class="dropbtn">Trackingi
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="/tracking/" class="previous">Dodaj trackingi/statusy</a> 
+          <a href="/tracking/adjustment">Korekty</a>
+        </div>
+      </div>
+    </div>
+     <div id="left" style="float: left;">
+         <h3>Usun dane przy pomocy pliku xlsx z eanami</h3>
+         <form action="/block/" method="post" enctype="multipart/form-data">
+          <input type="file"  id="excel_file" name="file" accept=".xlsx, .xls" required><br><br>
+             <select name = "country">
+                 <option value="01924c48-49bb-40c2-9c32-ab582e6db6f4">DE</option>
+             </select>
+          <br><br><br>
+          <button name="forwardBtn" value="multiple_upload" type="submit">Zatwierdz plik</button>
+
+      </form>
+     </div>
+</body>
+</html>

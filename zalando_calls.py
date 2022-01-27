@@ -322,3 +322,22 @@ class ZalandoCall(ZalandoRequest):
                     }
                 r = self.place_request("PATCH", link, payload)  # set status
                 return r
+
+    def set_quantity(self, list_of_eans, list_of_quantitys, sales_channel):
+        # create payload from list in params
+        payload = {"items": []}
+        # go for every ean in list and add data
+        for i, v in enumerate(list_of_eans):
+            payload["items"].append(
+                {
+                    "sales_channel_id": f"{sales_channel}",
+                    "ean": f"{list_of_eans[i]}",
+                    "quantity": f"{list_of_quantitys[i]}"
+                }
+            )
+        url = "/merchants/{merchant_id}" +"/stocks"
+        r = self.place_request("POST", url, payload)
+        return r
+
+
+

@@ -21,6 +21,7 @@
       </div>
     </div>
   <h1>Trackingi i statusy</h1>
+     <div id="left" style="float:left;">
   <h3>Uzueplnij ponizsze pola zeby zaktaulizowac status zamowienia</h3>
   <form action="/tracking/" method="post" enctype="multipart/form-data">
       <p>
@@ -39,12 +40,16 @@
       </p>
       <button name="forwardBtn" value="single_upload" type="submit">Dodaj trackingi i ustaw status</button><br><br><br><br>
   </form>
-  <form action="/tracking/" method="post" enctype="multipart/form-data">
-      <input type="file"  id="excel_file" name="file" accept=".xlsx, .xls" required><br><br>
-      Mail: <input type="email" name = "mail"> Opcjonalne - po zakonczonym imporcie zostanie wyslany mail z raportem na podany adres<br><br>
+</div>
+     <div id="right" style="float: right;">
+         <h3>Uzupelnij dane przy pomocy pliku xlsx</h3>
+      <form action="/tracking/" method="post" enctype="multipart/form-data">
+          <input type="file"  id="excel_file" name="file" accept=".xlsx, .xls" required><br><br>
+          Mail: <input type="email" name = "mail"> Opcjonalne - po zakonczonym imporcie zostanie wyslany mail z raportem na podany adres<br><br>
+          <br><br><br>
+          <button name="forwardBtn" value="multiple_upload" type="submit">Zatwierdz plik</button> Zaimportowano {{tracking_upload_status}}/{{number_to_import}}
 
-      <button name="forwardBtn" value="multiple_upload" type="submit">Importuj plik</button><br><br><br>
-      Zaimportowano {{tracking_upload_status}}/{{number_to_import}}
-  </form>
+      </form>
+     </div>
 </body>
 </html>

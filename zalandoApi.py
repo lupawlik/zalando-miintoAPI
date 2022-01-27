@@ -213,6 +213,37 @@ def zalando_labels_worker(data_set, worker_name):
     done_tracking = 0
     tracking_to_import = 0
 
+# url to block offer by ean
+# on zalando blocking is by set quantity on 0
+@app.route("/block/", methods=['POST', 'GET'])
+def block_site():
+    # load file from html and read excel data
+    if request.method == "POST":
+        # blocking offer with importing list
+        if request.form['forwardBtn'] == 'multiple_upload':
+
+            req = request.form
+            imported_file = request.files['file']
+            # get country code
+            session['country'] = req.get('country')
+
+            imported_file = pd.read_excel(imported_file)
+            # get columns name
+            columns = [x for x in imported_file]
+            # loads all columns and create list of data
+            ean = imported_file[columns[0]]
+            ean_list = []
+            quantity = imported_file[columns[1]]
+            quantity_list = []
+
+            for i, v in enumerate(ean):
+                ean_list.append(ean[i])
+                quantity_list.append(int(quantity[i]))
+            # change eans quantity to 0
+            r = ZalandoCall().set_quantity(ean_list, quantity_list, session['country'])
+            print(r)
+
+    return render_template("block.html")
 
 #  url to update order status and pass tracking numbers
 @app.route("/tracking/", methods=['POST', 'GET'])
