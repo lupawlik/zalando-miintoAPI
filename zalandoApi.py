@@ -109,7 +109,7 @@ def order_site_approved():
             single_order_data = [i["data"] for i in orders_data]
             now = datetime.datetime.now().strftime("%Y-%m-%d")
             now = datetime.datetime.strptime(now, "%Y-%m-%d")
-            for order in single_order_data: # get from tab of response order number
+            for order in single_order_data:  # get from tab of response order number
                 for numbers in order:
                     # this loads info about single order and save in list with all orders info
                     # loads only orders for the last 30 days
@@ -126,6 +126,7 @@ def order_site_approved():
                         list_of_billing_names.append(f"{numbers['attributes']['billing_address']['first_name']} {numbers['attributes']['billing_address']['last_name']}")
 
         df = pd.DataFrame()
+        # columns in excel report
         df['Numer_zamowienia'] = list_of_order_numbers
         df['Kontrahent_docelowy'] = list_of_clients_names
         df['Kontrahent_glowny'] = list_of_billing_names
@@ -268,7 +269,7 @@ def zalando_labels_worker(data_set, worker_name):
             report.append((i[0], r.status_code))
         except:
             report.append((i[0], "404"))
-        done_tracking +=1
+        done_tracking += 1
     print(report)
     workers.del_from_list(worker_name)
     done_tracking = 0
