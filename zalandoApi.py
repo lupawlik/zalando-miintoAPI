@@ -11,6 +11,8 @@ import workers
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mrktplc_data.db'
+# new instance of zalando api
+zalandoApi = ZalandoCall()
 db = SQLAlchemy(app)
 
 from data_base_objects import Returns_db, Orders_db
@@ -82,7 +84,7 @@ def order_site(site=0, count=10, date='newest', ord_number='all'):
                 return redirect(url_for('order_site', site=0, count=count, date=date, ord_number=ord_number))
             return redirect(url_for('order_site', site=int(site) - 1, count=count, date=date, ord_number=ord_number))
 
-    orders_data = ZalandoCall().get_orders(site, count, date, ord_number) # used when route is loaded/get orders
+    orders_data = zalandoApi.get_orders(site, count, date, ord_number) # used when route is loaded/get orders
 
     visible_orders_count = int(site), int(count)  # used to calculate order number in jinja2
 
@@ -98,18 +100,40 @@ def order_site_approved():
     #  download list of orders in xlsx
     if request.method == "POST":
         list_of_order_numbers = []
+        list_of_dates = []
+        list_of_clients_names = []
+        list_of_billing_names = []
+
         if request.form['forwardBtn'] == 'download_xlsx':
-            orders_data = ZalandoCall().get_approved_orders()
+            orders_data = zalandoApi.get_approved_orders()
             single_order_data = [i["data"] for i in orders_data]
+            now = datetime.datetime.now().strftime("%Y-%m-%d")
+            now = datetime.datetime.strptime(now, "%Y-%m-%d")
             for order in single_order_data: # get from tab of response order number
                 for numbers in order:
-                    list_of_order_numbers.append(numbers["attributes"]["order_number"])
+                    # this loads info about single order and save in list with all orders info
+                    # loads only orders for the last 30 days
+                    date = numbers["attributes"]["created_at"].split('.')[0]
+                    # add one hour to datetime and convert from date with time to only date
+                    date = datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%S")+datetime.timedelta(hours=1)
+                    date = date.strftime("%Y-%m-%d")
+                    date = datetime.datetime.strptime(date, "%Y-%m-%d")
+
+                    if date >= now - datetime.timedelta(days=30):
+                        list_of_order_numbers.append(numbers["attributes"]["order_number"])
+                        list_of_dates.append(date.strftime("%Y-%m-%d"))
+                        list_of_clients_names.append(f"{numbers['attributes']['shipping_address']['first_name']} {numbers['attributes']['shipping_address']['last_name']}")
+                        list_of_billing_names.append(f"{numbers['attributes']['billing_address']['first_name']} {numbers['attributes']['billing_address']['last_name']}")
+
         df = pd.DataFrame()
-        df['Order_number'] = list_of_order_numbers
+        df['Numer_zamowienia'] = list_of_order_numbers
+        df['Kontrahent_docelowy'] = list_of_clients_names
+        df['Kontrahent_glowny'] = list_of_billing_names
+        df['Data'] = list_of_dates
         df.to_excel('approved_orders.xlsx', index=False)
         return send_file('approved_orders.xlsx', as_attachment=True)
 
-    orders_data = ZalandoCall().get_approved_orders()
+    orders_data = zalandoApi.get_approved_orders()
     return render_template('orders_approved.html', orders=orders_data)
 
 
@@ -121,7 +145,7 @@ def return_site():
         order_id = req.get('order_id')
         button_data = req.get('forwardBtn')
         if button_data == "search":  # run when user search only order number, loads details of orders, items etc.
-            session['products_data'] = ZalandoCall().get_details_of_order(order_id)
+            session['products_data'] = zalandoApi.get_details_of_order(order_id)
 
             return render_template('returns.html', product_list=session['products_data'])
 
@@ -140,7 +164,7 @@ def return_site():
                     one_final_product_id = session['products_data']['orders'][int(product_input[i])-1][product_input[i]]["id_details"]
 
                     # change status, save data to commit to db
-                    action_info = ZalandoCall().update_status_to_returned(one_final_product_id, return_reason)
+                    action_info = zalandoApi.update_status_to_returned(one_final_product_id, return_reason)
                     print(one_final_product)
                     eans += one_final_product["ean"] + ' '
                     price += float(one_final_product["price"])
@@ -189,29 +213,8 @@ def product_site(ean=0):
             ean_number = req.get('ean_number')
             return redirect(url_for('product_site', ean=ean_number))
 
-    data = ZalandoCall().get_all_product_by_one_ean(ean)  # returns product data
+    data = zalandoApi.get_all_product_by_one_ean(ean)  # returns product data
     return render_template('products.html', data=data)
-
-# if tracking worker is running, uses these variables
-done_tracking = 0
-tracking_to_import = 0
-# worker to upload label, return label and status. Takes list of tuples[(order_number, label, return_label), (order_number, label, return_label)...]
-def zalando_labels_worker(data_set, worker_name):
-    global done_tracking
-    global tracking_to_import
-    report = []
-    for i in data_set:
-        print(f"Adding tracking {i[1]}, return tracking {i[2]} to order {i[0]}")
-        try:
-            r = ZalandoCall().update_tracking(i[0], i[1], i[2], "shipped")
-            report.append((i[0], r.status_code))
-        except:
-            report.append((i[0], "404"))
-        done_tracking +=1
-    print(report)
-    workers.del_from_list(worker_name)
-    done_tracking = 0
-    tracking_to_import = 0
 
 # url to block offer by ean
 # on zalando blocking is by set quantity on 0
@@ -236,14 +239,40 @@ def block_site():
             quantity = imported_file[columns[1]]
             quantity_list = []
 
+            # zalando accept only ean with 13 siqns, if is 12 add '0' on beginning of ean
             for i, v in enumerate(ean):
-                ean_list.append(ean[i])
+                if len(str(ean[i])) < 13:
+                    ean_list.append(f"0{ean[i]}")
+                else:
+                    ean_list.append(ean[i])
                 quantity_list.append(int(quantity[i]))
+
             # change eans quantity to 0
-            r = ZalandoCall().set_quantity(ean_list, quantity_list, session['country'])
-            print(r)
+            # run function on threading / add worker
+            workers.run_new_thread("ZerowanieIlosciZalando", zalandoApi.set_quantity, ean_list, quantity_list, session['country'])
 
     return render_template("block.html")
+
+# if tracking worker is running, uses these variables
+done_tracking = 0
+tracking_to_import = 0
+# worker to upload label, return label and status. Takes list of tuples[(order_number, label, return_label), (order_number, label, return_label)...]
+def zalando_labels_worker(data_set, worker_name):
+    global done_tracking
+    global tracking_to_import
+    report = []
+    for i in data_set:
+        print(f"Adding tracking {i[1]}, return tracking {i[2]} to order {i[0]}")
+        try:
+            r = zalandoApi.update_tracking(i[0], i[1], i[2], "shipped")
+            report.append((i[0], r.status_code))
+        except:
+            report.append((i[0], "404"))
+        done_tracking +=1
+    print(report)
+    workers.del_from_list(worker_name)
+    done_tracking = 0
+    tracking_to_import = 0
 
 #  url to update order status and pass tracking numbers
 @app.route("/tracking/", methods=['POST', 'GET'])
@@ -255,7 +284,7 @@ def tracking_site():
             session['tracking'] = req.get('track_num')
             session['return_tracking'] = req.get('ret_track')
             session['stauts'] = req.get('status')
-            ZalandoCall().update_tracking(session['order_nr'], session['tracking'], session['return_tracking'], session['stauts'])  # tracking, return_tracking, statsu CAN be empty
+            zalandoApi.update_tracking(session['order_nr'], session['tracking'], session['return_tracking'], session['stauts'])  # tracking, return_tracking, statsu CAN be empty
         # import data from xlsx file, run worker to uploads all tracking to zalando.
         # show progress on html pag
         # when worker stops, remove from worker list and send mail to user
@@ -299,10 +328,10 @@ def tracking_adjustment_site(order_number=''):
     if order_number != '':
         session['order_number'] = order_number
 
-        session['order_data'] = ZalandoCall().get_orders(0, 1, "newest", order_number)  # get orders data to use in get_details_of_order()
+        session['order_data'] = zalandoApi.get_orders(0, 1, "newest", order_number)  # get orders data to use in get_details_of_order()
         order_details = session['order_data']
 
-        order_data = ZalandoCall().get_details_of_order(session['order_number'])
+        order_data = zalandoApi.get_details_of_order(session['order_number'])
         for i, v in enumerate(order_data["orders"]):
             single_ean = order_data["orders"][i][str(i+1)]["order_details"]["ean"]
             session['ean_list'].append(single_ean)
@@ -379,7 +408,7 @@ def orders_worker(delay):
         while True:
             print("\nWorker zalando orders")
             print("************************************")
-            orders_data = ZalandoCall().get_last_hour_orders()  # return orders from last hour
+            orders_data = zalandoApi.get_last_hour_orders()  # return orders from last hour
 
             for single_order in orders_data['data']:
                 order_number = single_order["attributes"]["order_number"]

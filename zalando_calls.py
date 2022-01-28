@@ -4,6 +4,7 @@ import time
 import datetime
 from datetime import timedelta
 from string import Template
+import workers
 from zalando_requests import ZalandoRequest
 
 # class contains all necessary api requests
@@ -323,21 +324,44 @@ class ZalandoCall(ZalandoRequest):
                 r = self.place_request("PATCH", link, payload)  # set status
                 return r
 
+    # max ean update send in one request is 1000. When sending 1000 rate limit is 1 minute
     def set_quantity(self, list_of_eans, list_of_quantitys, sales_channel):
         # create payload from list in params
-        payload = {"items": []}
-        # go for every ean in list and add data
-        for i, v in enumerate(list_of_eans):
-            payload["items"].append(
-                {
-                    "sales_channel_id": f"{sales_channel}",
-                    "ean": f"{list_of_eans[i]}",
-                    "quantity": f"{list_of_quantitys[i]}"
-                }
-            )
-        url = "/merchants/{merchant_id}" +"/stocks"
-        r = self.place_request("POST", url, payload)
-        return r
+        # loop is every 1000 eans
+
+        # stores if is ean successfully changed quantity or not
+        report_data = []
+        for i in range(int(len(list_of_eans)/1000)+1):
+            payload = {"items": []}
+            # go for every ean in list and add data
+            for i, v in enumerate(list_of_eans):
+                payload["items"].append(
+                    {
+                        "sales_channel_id": f"{sales_channel}",
+                        "ean": f"{list_of_eans[i]}",
+                        "quantity": f"{list_of_quantitys[i]}"
+                    }
+                )
+            # updates ean with given quantity
+            url = "/merchants/{merchant_id}" +"/stocks"
+            r = dict(self.place_request("POST", url, payload))
+            print(r)
+
+            # get ean and status list and save in report_data
+            # if code == 0, stock is changed
+            for product in r['results']:
+                if product['result']['code'] != 0:
+                    report_data.append((product['item']['ean'], "FAILURE"))
+                else:
+                    report_data.append((product['item']['ean'], "ACCEPTED"))
+
+            # wait 1 minute if is more than 1000 eans
+            if len(list_of_eans) > 1000:
+                time.sleep(61)
+        print("Successfully changed quantity")
+        print(report_data)
+        workers.del_from_list("ZerowanieIlosciZalando")
+        return report_data
 
 
 

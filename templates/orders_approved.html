@@ -34,6 +34,8 @@
                     <tr>
                         <th><b>Zamowienie</b></th>
                         <th>Numer zamowienia</th>
+                        <th>Kontrahent docelowy</th>
+                        <th>Kontrahent glowny</th>
                         <th>Data zamowienia</th>
                         <th>Do kiedy zrealizowac</th>
                     </tr>
@@ -51,6 +53,8 @@
                         {% set order_status = order.attributes.status %}
                         {% set first_name = order.attributes.shipping_address.first_name %}
                         {% set last_name = order.attributes.shipping_address.last_name %}
+                        {% set first_name_billing = order.attributes.billing_address.first_name %}
+                        {% set last_name_billing = order.attributes.billing_address.last_name %}
                         {% set address_line = order.attributes.shipping_address.address_line_1 %}
                         {% set color = get_time_delay(delivery_end_date) %}
 
@@ -60,26 +64,17 @@
                             {% if color == "green" %}
                                 <td style="background-color: #b6d7a8;"><b>{{order_number}}</b></td>
                                 <td style="background-color: #b6d7a8;">{{order_nr}}</td>
-                                {% if json_data is defined %}
-                                    <td style="background-color: #b6d7a8;">
-                                        {% for item in orders.included %}
-                                        {{item.attributes.status}}
-                                        {% endfor %}
-                                    </td>
-                                {% endif %}
+
+                                <td style="background-color: #b6d7a8;">{{first_name}} {{last_name}}</td>
+                                <td style="background-color: #b6d7a8;">{{first_name_billing}} {{last_name_billing}}</td>
                                 <td style="background-color: #b6d7a8;">{{change_time(order_time)}}</td>
                                 <td style="background-color: #b6d7a8;">{{change_time(delivery_end_date)}}</td>
 
                             {% elif color == "red" %}
                                 <td style="background-color: #ea9999;"><b>{{order_number}}</b></td>
                                 <td style="background-color: #ea9999;">{{order_nr}}</td>
-                                {% if json_data is defined %}
-                                    <td style="background-color: #ea9999;">
-                                        {% for item in orders.included %}
-                                        {{item.attributes.status}}
-                                        {% endfor %}
-                                    </td>
-                                {% endif %}
+                                <td style="background-color: #ea9999;">{{first_name}} {{last_name}}</td>
+                                <td style="background-color: #ea9999;">{{first_name_billing}} {{last_name_billing}}</td>
                                 <td style="background-color: #ea9999;">{{change_time(order_time)}}</td>
                                 <td style="background-color: #ea9999;"><b>{{change_time(delivery_end_date)}}</b></td>
 
