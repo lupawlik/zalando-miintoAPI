@@ -6,6 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 import sqlite3
 import pandas as pd
 
+from mail import send_mail
 from zalando_calls import ZalandoCall
 import workers
 
@@ -258,7 +259,7 @@ def block_site():
 done_tracking = 0
 tracking_to_import = 0
 # worker to upload label, return label and status. Takes list of tuples[(order_number, label, return_label), (order_number, label, return_label)...]
-def zalando_labels_worker(data_set, worker_name):
+def zalando_labels_worker(data_set, worker_name, mail):
     global done_tracking
     global tracking_to_import
     report = []
@@ -270,10 +271,20 @@ def zalando_labels_worker(data_set, worker_name):
         except:
             report.append((i[0], "404"))
         done_tracking += 1
-    print(report)
+    report_text = ""
+    for i in report:
+        if i[1] == 204:
+            report_text += f"\n{i[0]} wgrano"
+        else:
+            report_text += f"\n{i[0]} nie wgrano"
+    print(report_text)
     workers.del_from_list(worker_name)
     done_tracking = 0
     tracking_to_import = 0
+    try:
+        send_mail(mail, report_text, "Raport z wgrywania trackingow")
+    except:
+        print("Nie mozna bylo wyslac wiadomosci")
 
 #  url to update order status and pass tracking numbers
 @app.route("/tracking/", methods=['POST', 'GET'])
@@ -290,7 +301,10 @@ def tracking_site():
         # show progress on html pag
         # when worker stops, remove from worker list and send mail to user
         if request.form['forwardBtn'] == 'multiple_upload':
+            req = request.form
             imported_file = request.files['file']
+            mail_to_send = req.get('mail')
+
             imported_file = pd.read_excel(imported_file)
 
             # get columns name
@@ -310,7 +324,7 @@ def tracking_site():
             worker_name = f"ZalandoLabels{len(data_set)}"
             global tracking_to_import
             tracking_to_import = len(data_set)
-            workers.run_new_thread(worker_name, zalando_labels_worker, data_set, worker_name)
+            workers.run_new_thread(worker_name, zalando_labels_worker, data_set, worker_name, mail_to_send)
 
     return render_template('tracking.html', tracking_upload_status=done_tracking, number_to_import=tracking_to_import)
 
