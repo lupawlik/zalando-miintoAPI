@@ -26,9 +26,12 @@ class ZalandoCall(ZalandoRequest):
         r = self.place_request("GET", "/merchants/{merchant_id}/orders", params)
 
         # when result are empty
-        if not r['data']:
+        try:
+            if not r['data']:
+                return "NIE MA TAKIEGO ZAMOWIENIA"
+            return r
+        except:
             return "NIE MA TAKIEGO ZAMOWIENIA"
-        return r
 
     # return list of all orders with "approved" status
     def get_approved_orders(self):
@@ -199,6 +202,7 @@ class ZalandoCall(ZalandoRequest):
                 orders_data = self.get_orders(0, 1, "newest", order_number)
             elif from_data:  # if user pass data from get_orders() instead order_number
                 orders_data = order_number
+                order_number = orders_data['data'][0]['attributes']['order_number']
             if orders_data == 'NIE MA TAKIEGO ZAMOWIENIA':  # when order data are empty
                 return 'NIE MA TAKIEGO ZAMOWIENIA'
 
@@ -305,24 +309,26 @@ class ZalandoCall(ZalandoRequest):
             time.sleep(5)  # from zalando documentation
             result = self.get_details_of_order(data, True)  # loads details of order from given data set
 
-            for i, v in enumerate(result["orders"]):
-                order_id = result["orders"][i][str(i+1)]["id_details"]["order_id"]
-                line_id = result["orders"][i][str(i+1)]["id_details"]["order_line_id"]
-                item_id = result["orders"][i][str(i+1)]["id_details"]["order_item_id"]
-                order_number = result["orders"][i][str(i+1)]["id_details"]["order_number"]
 
-                link = '/merchants/{merchant_id}/orders'+f'/{order_id}/items/{item_id}/lines/{line_id}'
-                payload = {
-                      "data": {
-                        "id": line_id,
-                        "type": "OrderLine",
-                        "attributes": {
-                          "status": f"{status}"
+            for index, item in enumerate(result["orders"]):
+                    order_id = item[f"{index+1}"]["id_details"]["order_id"]
+                    line_id = item[f"{index+1}"]["id_details"]["order_line_id"]
+                    item_id = item[f"{index+1}"]["id_details"]["order_item_id"]
+                    order_number = item[f"{index+1}"]["id_details"]["order_number"]
+                    link = '/merchants/{merchant_id}/orders'+f'/{order_id}/items/{item_id}/lines/{line_id}'
+                    payload = {
+                          "data": {
+                            "id": line_id,
+                            "type": "OrderLine",
+                            "attributes": {
+                              "status": f"{status}"
+                            }
+                          }
                         }
-                      }
-                    }
-                r = self.place_request("PATCH", link, payload)  # set status
-                return r
+                    r = self.place_request("PATCH", link, payload)  # set status
+                    if index!=0:  # when is more then one product in order to update
+                        time.sleep(5)
+            return r
 
     # max ean update send in one request is 1000. When sending 1000 rate limit is 1 minute
     def set_quantity(self, list_of_eans, list_of_quantitys, sales_channel):

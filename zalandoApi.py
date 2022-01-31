@@ -265,6 +265,10 @@ def zalando_labels_worker(data_set, worker_name, mail):
     report = []
     for i in data_set:
         print(f"Adding tracking {i[1]}, return tracking {i[2]} to order {i[0]}")
+        if str(i[1]) == "nan" or str(i[2]) == "nan":
+            report.append((i[0], "404"))
+            print("Pominieto, brak trackingow")
+            continue
         try:
             r = zalandoApi.update_tracking(i[0], i[1], i[2], "shipped")
             report.append((i[0], r.status_code))
@@ -273,7 +277,7 @@ def zalando_labels_worker(data_set, worker_name, mail):
         done_tracking += 1
     report_text = ""
     for i in report:
-        if i[1] == 204:
+        if i[1] == 204 or i[1] == "204":
             report_text += f"\n{i[0]} wgrano"
         else:
             report_text += f"\n{i[0]} nie wgrano"
@@ -305,7 +309,7 @@ def tracking_site():
             imported_file = request.files['file']
             mail_to_send = req.get('mail')
 
-            imported_file = pd.read_excel(imported_file)
+            imported_file = pd.read_excel(imported_file, dtype=str)
 
             # get columns name
             columns = [x for x in imported_file]
