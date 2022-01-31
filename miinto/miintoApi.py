@@ -8,7 +8,7 @@ from flask import request, redirect, url_for, render_template
 from __main__ import app, db
 
 # set main courses
-coursers = {"EUR": 1, "DKK": 1, "PLN": 1, "SEK": 1}
+coursers = {"EUR": 0.22, "DKK": 1.63, "PLN": 1, "SEK": 2.29}
 
 from data_base_objects import MiintoOrdersDb
 
@@ -26,8 +26,13 @@ def currency_converter(base_c, in_c):
         'base_currency': base_c,
         }
     print(f"Downloading {base_c} to {in_c} course")
-    r = requests.get(f'https://freecurrencyapi.net/api/v2/latest', params=params).json()
-    return r["data"][in_c]
+    try:
+        r = requests.get(f'https://freecurrencyapi.net/api/v2/latest', params=params).json()
+        return r["data"][in_c]
+    except:
+        print(f'Error sending request https://freecurrencyapi.net/api/v2/latest. It was impossible to dowload new courses\n Used {coursers[in_c]}')
+        return coursers[in_c] # when is impossible to load new course, use these from dict
+
 
 #  if file with countries exist load it. File is generated with create_mcc() function and returns list of available countries
 def load_countries():
