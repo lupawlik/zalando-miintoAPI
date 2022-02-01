@@ -7,7 +7,7 @@ from miinto.miinto_requests import create_mcc, MiintoRequest
 from flask import request, redirect, url_for, render_template, session
 from __main__ import app, db
 
-# set main courses
+# set main courses, used when course converter not working
 coursers = {"EUR": 0.22, "DKK": 1.63, "PLN": 1, "SEK": 2.29}
 
 from data_base_objects import MiintoOrdersDb
@@ -19,7 +19,7 @@ try:  # loads api key to currency converter from yaml
 except Exception:
     print("Paste data in pw.yaml. Currency login failed")
 
-#  return exchange rate. example currency_converter(PLN, EUR) will return pln to euro ratio
+#  return exchange rate. Example currency_converter(PLN, EUR) will return pln to euro ratio
 def currency_converter(base_c, in_c):
     params = {
         'apikey': CURR_CONVERTER_KEY,
@@ -27,6 +27,7 @@ def currency_converter(base_c, in_c):
         }
     print(f"Downloading {base_c} to {in_c} course")
     try:
+        # get courses
         r = requests.get(f'https://freecurrencyapi.net/api/v2/latest', params=params).json()
         return r["data"][in_c]
     except:
@@ -38,19 +39,23 @@ def currency_converter(base_c, in_c):
 def load_countries():
     try:
         with open("miinto/countries.txt") as f:
-            string_data = f.readlines()[0] .replace("\'", "\"")
+            string_data = f.readlines()[0].replace("\'", "\"")
             json_data = json.loads(string_data)
     except:
-        create_mcc()  # generate new token (mcc.txt) and list of countries(countries.txt)
+        # generate new token (mcc.txt) and list of countries(countries.txt)
+        create_mcc()
         with open("miinto/countries.txt") as f:
             string_data = f.readlines()[0] .replace("\'", "\"")
             json_data = json.loads(string_data)
     return json_data
 
 class MiintoApi(MiintoRequest):
+
+    # return singler order by id
     def get_order(self, country, id):
         return self.place_request("GET", f"/shops/{country}/orders/{id}")
 
+    # return list of countries
     def get_order_list(self, country, status="accepted", offset="0", limit="50"):
         data = {
             "status[]": status,
@@ -61,30 +66,37 @@ class MiintoApi(MiintoRequest):
             }
         return self.place_request("GET", f"/shops/{country}/orders", data)
 
-#wczytuje liste krajow
-
+# route to print statistic from miinto, using data from database nad chart.js library
 @app.route("/miinto/stats/", methods=['POST', 'GET'])
 @app.route("/miinto/stats/<country>/", methods=['POST', 'GET'])
 @app.route("/miinto/stats/<country>/<month>", methods=['POST', 'GET'])
 def miint_stats(country="", month=""):
+    # loads all available countries
     countries = load_countries()
     labels = [co for co in countries]
+
+    # if user is not searching by specific month, print orders for all months
     if not country or country == "all":
+
+        # when users uses form to filter orders
         if request.method == "POST":
             req = request.form
             month = req.get('month')
             all_months = req.get('all')
-            if all_months:
+            if all_months: # when user want to show all months
                 return redirect(url_for('miint_stats', country="all"))
-
+            # when users search for specific month
             return redirect(url_for('miint_stats', country="all", month=month))
-        order_number = []
-        sum = 0
+
         conn = sqlite3.connect("mrktplc_data.db")
         c = conn.cursor()
 
-        sum_of_orders = 0
-        for co in countries:
+        order_number = []  # stores sum of orders from all countries in list
+        sum = 0
+        sum_of_orders = 0 # stores sum of orders from all countries summary
+
+        for co in countries:  # go for every available country
+            # get number of order by month or from all of time
             if not month:
                 query = f"SELECT COUNT(*) FROM miinto_orders_db WHERE country = \"{co}\""
             else:
@@ -100,11 +112,10 @@ def miint_stats(country="", month=""):
         if month:
             year, month = month.split("-")
             query = f"SELECT * FROM miinto_orders_db WHERE strftime('%m', date) = '{month}' AND strftime('%Y', date) = '{year}' ORDER BY date DESC"
-            query2 = f"SELECT price, currency FROM miinto_orders_db WHERE strftime('%m', date) = '{month}' AND strftime('%Y', date) = '{year}' ORDER BY date DESC"
 
         elif not month:
             query = f"SELECT * FROM miinto_orders_db ORDER BY date DESC"
-            query2 = f"SELECT price, currency FROM miinto_orders_db ORDER BY date DESC"
+
         c.execute(query)
 
         rows = list(c.fetchall())
@@ -311,7 +322,6 @@ def orders_worker_miinto(delay):
         with open("miinto/last_import.txt", "w") as f:
             f.write(dt_string)
         time.sleep(delay)
-
 
 # shows orders from db
 @app.route('/miinto/orders/', methods=['POST', 'GET'])
