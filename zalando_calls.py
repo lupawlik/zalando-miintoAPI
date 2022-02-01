@@ -309,7 +309,6 @@ class ZalandoCall(ZalandoRequest):
             time.sleep(5)  # from zalando documentation
             result = self.get_details_of_order(data, True)  # loads details of order from given data set
 
-
             for index, item in enumerate(result["orders"]):
                     order_id = item[f"{index+1}"]["id_details"]["order_id"]
                     line_id = item[f"{index+1}"]["id_details"]["order_line_id"]

@@ -16,26 +16,27 @@ class ZalandoRequest:
     def place_request(self, method, path="", body=""):
         link = f"{URL}{path}"
         if "{merchant_id}" in link:
-            link = link.replace("{merchant_id}", f"{self.merchant_id}")  # if {merchant_id} in text replace with merchant id
+            link = link.replace("{merchant_id}", f"{creat_acces_token()[1]}")  # if {merchant_id} in text replace with merchant id
 
         headers = {
-            'Authorization': f'Bearer {self.token}',
+            'Authorization': f'Bearer {creat_acces_token()[0]}',
             'Accept': 'application/vnd.api+json',
             'Content-Type': 'application/vnd.api+json'}
 
         if body and method == "GET":
             r = requests.get(link, headers=headers, params=body)
+
         if not body and method == "GET":
             r = requests.get(link, headers=headers)
 
         if method == "POST":
-            headers = {'Authorization': f'Bearer {self.token}',
+            headers = {'Authorization': f'Bearer {creat_acces_token()[0]}',
                        'Content-Type': 'application/json'}
             r = requests.post(link, json=body, headers=headers)
 
         if method == "PATCH":
            headers = {
-            'Authorization': f'Bearer {self.token}',
+            'Authorization': f'Bearer {creat_acces_token()[0]}',
             'Accept': 'application/vnd.api+json',
             'Content-Type': 'application/vnd.api+json'}
            r = requests.patch(link, json=body, headers=headers)
