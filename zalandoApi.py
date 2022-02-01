@@ -308,7 +308,6 @@ def tracking_site():
             req = request.form
             imported_file = request.files['file']
             mail_to_send = req.get('mail')
-
             imported_file = pd.read_excel(imported_file, dtype=str)
 
             # get columns name
@@ -455,6 +454,7 @@ def orders_worker(delay):
 def thread_starter():
     workers.run_new_thread("ZamowieniaZalando5m", orders_worker, 300)  # runs zalando orders worker
     workers.run_new_thread("ZamowieniaMiinto1h", miintoApi.orders_worker_miinto, 3600)  # runs miinto orders worker
+
 
 if __name__ == '__main__':
     app.secret_key = ".."

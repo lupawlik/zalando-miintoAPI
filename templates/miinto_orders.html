@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <title>Zamówienia miinto</title>
+</head>
+<body>
+      <form action="/miinto/orders/" method="post" id = "form_clear">
+
+          <p>
+              Ile na stronie:
+              <select id="number_of_orders" name="number_of_orders">
+                  <option value="1">1</option>
+                  <option value="5">5</option>
+                  <option value="10" selected="selected">10</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="200">200</option>
+                  <option value="500">500</option>
+                  <option value="1000">1000</option>
+              </select>
+          </p>
+          <p>
+              Kraj:
+              <select id="country_name" name="country_name">
+                  <option value="Platform-DK" selected="selected">Dania</option>
+                  <option value="Platform-NL">Holandia</option>
+                  <option value="Platform-PL" >Polska</option>
+                  <option value="Platform-SE">Szwecja</option>
+              </select>
+          </p>
+          <p>
+              Kolejnosc wyswietlania:
+              <select id="order" name="date_of_order">
+                  <option value="newest">Od najnowszych</option>
+                  <option value="oldest">Od najstarszych</option>
+
+              </select>
+          </p>
+          <p>
+              Numer zamowienia(opcjonalne):
+              <input type="number" min="1" id="order_number_input" name="order_number_input">
+          </p>
+          <button value="go" name="forwardBtn" type="submit">Wczytaj</button>
+      </form>
+      <form method="post">
+          <button value="prev" name="forwardBtn" type="submit">Poprzednia</button>
+          <button value="nex" name="forwardBtn" type="submit">Nastepna</button>
+      </form>
+
+<div class="table-wrapper">
+            <table class="order_table" style="border: 1px solid black;">
+
+                <thead>
+                    <tr>
+                        <th><b>Zamowienie</b></th>
+                        <th>Kraj</th>
+                        <th>Numer zamowienia</th>
+                        <th>Kwota</th>
+                        <th>Kwota w pln</th>
+                        <th>Data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders%}
+                        {% set order_number = order[1] %}
+                        {% set order_country = order[6] %}
+                        {% set order_price = order[3] %}
+                        {% set order_price_pln = order[4] %}
+                        {% set date = order[2] %}
+
+                        <tr>
+                            <td><b>{{loop.index}}</b></td>
+                            <td>{{order_country}}</td>
+                            <td>{{order_number}}</td>
+                            <td>{{order_price}}</td>
+                            <td>{{order_price_pln}}</td>
+                            <td>{{date}}</td>
+                        </tr>
+                    {% endfor %}
+                <tbody>
+            </table>
+        </div>
+</body>
+</html>

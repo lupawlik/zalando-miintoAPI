@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from collections import Counter
 from miinto.miinto_requests import create_mcc, MiintoRequest
-from flask import request, redirect, url_for, render_template
+from flask import request, redirect, url_for, render_template, session
 from __main__ import app, db
 
 # set main courses
@@ -311,6 +311,40 @@ def orders_worker_miinto(delay):
         with open("miinto/last_import.txt", "w") as f:
             f.write(dt_string)
         time.sleep(delay)
+
+
+# shows orders from db
+@app.route('/miinto/orders/', methods=['POST', 'GET'])
+@app.route('/miinto/orders/<country>/<amount_on_site>/<offset>/<date>/<order_number>', methods=['POST', 'GET'])
+def order_site_miinto(country="all", amount_on_site="100", offset="0", date="", order_number=''):
+    conn = sqlite3.connect("mrktplc_data.db")
+    c = conn.cursor()
+
+    # when users searcher for specific orders
+    # when searching for orders from all countries
+    if request.method == "POST":
+        if request.form['forwardBtn'] == 'go':
+            req = request.form
+            session['number_of_orders'] = req.get('number_of_orders')
+            session['date_of_order'] = req.get('date_of_order')
+            session['order_number_input'] = req.get('order_number_input')
+            session['country_name'] = req.get('country_name')
+
+            # if order_number is searched by user - print it
+            if session['order_number_input']:
+                query = f"SELECT * FROM miinto_orders_db WHERE order_number = \"{session['order_number_input']}\""
+            else:
+                query = f"SELECT * FROM miinto_orders_db LIMIT {int(session['number_of_orders'])}"
+            c.execute(query)
+            orders = c.fetchall()
+            return render_template("miinto_orders.html", orders=orders)
+
+
+    # when site is loaded without parameters print last 500 orderes
+    query = f"SELECT * FROM miinto_orders_db LIMIT 500"
+    c.execute(query)
+    orders = c.fetchall()
+    return render_template("miinto_orders.html", orders=orders)
 
 
 
