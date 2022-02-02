@@ -264,7 +264,7 @@ def orders_worker_miinto(delay):
 
             price_pln = round(price_in_order / coursers[currency.upper()], 2)
 
-            ord = MiintoOrdersDb(order_id, time_to_db, price_in_order, price_pln, currency, co)
+            ord = MiintoOrdersDb(order_id, time_to_db, price_in_order, price_pln, currency, co, customer_name)
             db.session.add(ord)
             try:
                 db.session.commit()
@@ -339,12 +339,32 @@ def order_site_miinto(country="all", amount_on_site="100", offset="0", date="", 
             session['date_of_order'] = req.get('date_of_order')
             session['order_number_input'] = req.get('order_number_input')
             session['country_name'] = req.get('country_name')
+            session['date_start'] = req.get('date_start')
+            session['date_end'] = req.get('date_end')
 
             # if order_number is searched by user - print it
+
             if session['order_number_input']:
                 query = f"SELECT * FROM miinto_orders_db WHERE order_number = \"{session['order_number_input']}\""
             else:
-                query = f"SELECT * FROM miinto_orders_db LIMIT {int(session['number_of_orders'])}"
+                # build query from form
+                query_1 = "SELECT * FROM miinto_orders_db"
+                query_limit = f" LIMIT {int(session['number_of_orders'])}"
+
+                # if user want to print orders form all countries
+                print(session['country_name'])
+                if session['country_name'] == "all":
+                    query_2 = ""
+                else:
+                    query_2 = f" WHERE country = \"{session['country_name']}\""
+                # when user want to search between dates
+                if session['date_start']:
+                    if session['date_end']:
+                        query_3 = f" AND date(date) BETWEEN date('{session['date_start']}') AND date('{session['date_end']}')"
+                else:
+                    query_3 = ""
+                query = f"{query_1}{query_2}{query_3}{query_limit}"
+                print(query)
             c.execute(query)
             orders = c.fetchall()
             return render_template("miinto_orders.html", orders=orders)

@@ -13,30 +13,27 @@
               <select id="number_of_orders" name="number_of_orders">
                   <option value="1">1</option>
                   <option value="5">5</option>
-                  <option value="10" selected="selected">10</option>
+                  <option value="10">10</option>
                   <option value="50">50</option>
                   <option value="100">100</option>
                   <option value="200">200</option>
-                  <option value="500">500</option>
+                  <option value="500" selected="selected">500</option>
                   <option value="1000">1000</option>
+                  <option value="10000">10000</option>
               </select>
           </p>
           <p>
               Kraj:
               <select id="country_name" name="country_name">
-                  <option value="Platform-DK" selected="selected">Dania</option>
+                  <option value="all" selected="selected">Wszystko</option>
+                  <option value="Platform-DK">Dania</option>
                   <option value="Platform-NL">Holandia</option>
                   <option value="Platform-PL" >Polska</option>
                   <option value="Platform-SE">Szwecja</option>
               </select>
           </p>
           <p>
-              Kolejnosc wyswietlania:
-              <select id="order" name="date_of_order">
-                  <option value="newest">Od najnowszych</option>
-                  <option value="oldest">Od najstarszych</option>
-
-              </select>
+              Od <input type="date" name="date_start"> do <input type="date" name="date_end">
           </p>
           <p>
               Numer zamowienia(opcjonalne):
@@ -58,7 +55,9 @@
                         <th>Kraj</th>
                         <th>Numer zamowienia</th>
                         <th>Kwota</th>
+                        <th>Waluta</th>
                         <th>Kwota w pln</th>
+                        <th>Imię i nazwisko</th>
                         <th>Data</th>
                     </tr>
                 </thead>
@@ -69,14 +68,19 @@
                         {% set order_price = order[3] %}
                         {% set order_price_pln = order[4] %}
                         {% set date = order[2] %}
+                        {% set name = order[7] %}
+                        {% set currency = order[5] %}
 
                         <tr>
                             <td><b>{{loop.index}}</b></td>
                             <td>{{order_country}}</td>
                             <td>{{order_number}}</td>
                             <td>{{order_price}}</td>
+                            <td>{{currency}}</td>
                             <td>{{order_price_pln}}</td>
+                            <td>{{name}}</td>
                             <td>{{date}}</td>
+
                         </tr>
                     {% endfor %}
                 <tbody>

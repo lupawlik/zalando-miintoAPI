@@ -35,11 +35,13 @@ class MiintoOrdersDb(db.Model):
     price_pln = db.Column('price_pln', db.String(16))
     currency = db.Column('currency', db.String(16))
     country = db.Column('country', db.String(16))
+    name = db.Column('name', db.String(250))
 
-    def __init__(self, order_number, data, price, price_pln, currency, country):
+    def __init__(self, order_number, data, price, price_pln, currency, country, name):
         self.order_number = order_number
         self.data = data
         self.price = price
         self.price_pln = price_pln
         self.currency = currency
         self.country = country
+        self.name = name
