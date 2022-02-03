@@ -9,14 +9,23 @@
 
 <body>
     <div class="navbar">
-    <a class="previous" href ="/miinto/stats/">Wszystkie rynki</a>
-    <a class="previous" href ="/miinto/stats/dk">Dania</a>
-    <a class="previous" href ="/miinto/stats/nl">Holandia</a>
-    <a class="previous" href ="/miinto/stats/pl">Polska</a>
-    <a class="previous" href ="/miinto/stats/se">Szwecja</a>
+        <a href="/miinto/stats" class="previous"><b>MIINTO</b></a>
+        <a class="previous" href ="/miinto/orders/">Pokaz liste zamowien</a>
+        <div class="dropdown">
+            <button class="dropbtn">Statystyki zamowien
+              <i class="fa fa-caret-down"></i>
+            </button>
+            <div class="dropdown-content">
+                <a class="previous" href ="/miinto/stats/">Wszystkie rynki</a>
+                <a class="previous" href ="/miinto/stats/dk">Dania</a>
+                <a class="previous" href ="/miinto/stats/nl">Holandia</a>
+                <a class="previous" href ="/miinto/stats/pl">Polska</a>
+                <a class="previous" href ="/miinto/stats/se">Szwecja</a>
+            </div>
+        </div>
     </div>
-    <h1 style="text-align: center;">Wszystkie rynki miinto - okres: </h1>
-    <form action="{{ url_for('miint_stats', country="all") }}" method="post">
+    <h1 style="text-align: center;">Wszystkie rynki miinto - okres: {{month}}</h1>
+    <form action="{{ url_for('miinto_stats', country='all') }}" method="post">
         <input type="month" id="month" name="month" min="2021-12" value="2021-12">
         <input type="submit"></br>
         Wyswietl wszysto <input type="checkbox" id="all" name="all">

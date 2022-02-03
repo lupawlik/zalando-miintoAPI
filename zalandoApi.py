@@ -74,6 +74,7 @@ def order_site(site=0, count=10, date='newest', ord_number='all'):
             order_number = req.get('order_number_input')
 
             if order_number:  # if user pass specific order numebr redirect to this order
+                # redirect to same site with filters
                 return redirect(url_for('order_site', site=0, count=1, date=data, ord_number=order_number))
             return redirect(url_for('order_site', site=0, count=number, date=data, ord_number='all'))  # redirect to searched result
 
@@ -87,7 +88,7 @@ def order_site(site=0, count=10, date='newest', ord_number='all'):
 
     orders_data = zalandoApi.get_orders(site, count, date, ord_number) # used when route is loaded/get orders
 
-    visible_orders_count = int(site), int(count)  # used to calculate order number in jinja2
+    visible_orders_count = int(site), int(count)  # used to calculate order number and offset number in jinja2
 
     if count == '1':
         json_data = orders_data  # used to show all json data in jnija2 if user searched for specific order

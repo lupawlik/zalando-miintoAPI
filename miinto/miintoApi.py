@@ -70,7 +70,7 @@ class MiintoApi(MiintoRequest):
 @app.route("/miinto/stats/", methods=['POST', 'GET'])
 @app.route("/miinto/stats/<country>/", methods=['POST', 'GET'])
 @app.route("/miinto/stats/<country>/<month>", methods=['POST', 'GET'])
-def miint_stats(country="", month=""):
+def miinto_stats(country="", month=""):
     # loads all available countries
     countries = load_countries()
     labels = [co for co in countries]
@@ -84,9 +84,9 @@ def miint_stats(country="", month=""):
             month = req.get('month')
             all_months = req.get('all')
             if all_months: # when user want to show all months
-                return redirect(url_for('miint_stats', country="all"))
+                return redirect(url_for('miinto_stats', country="all"))
             # when users search for specific month
-            return redirect(url_for('miint_stats', country="all", month=month))
+            return redirect(url_for('miinto_stats', country="all", month=month))
 
         conn = sqlite3.connect("mrktplc_data.db")
         c = conn.cursor()
@@ -134,15 +134,14 @@ def miint_stats(country="", month=""):
 
         t_1 = []
         tab_price = []
-        coursor = -1
+        cursor = -1
         for single_price in date_with_price:
             if single_price[0] not in t_1:
                 t_1.append(single_price[0])
                 tab_price.append(single_price[1])
-                coursor += 1
+                cursor += 1
             elif single_price[0] in t_1:
-                tab_price[coursor] += single_price[1]
-
+                tab_price[cursor] += single_price[1]
 
         for i in range(len(tab_price)):
             tab_price[i] = round(tab_price[i], 2)
@@ -161,16 +160,16 @@ def miint_stats(country="", month=""):
         for i in order_number:
             percent_per_country.append(str(round(int(i)/int(sum_of_orders), 4)*100))
 
-        return render_template("miinto_stats.html", sum=sum_of_orders, labels=labels, values=order_number, date_labels=date_labels, values_o_number=values_o_number, avg_order_number = avg_order_number, percent_per_country = percent_per_country, summary_prices_pln=tab_price, sum_in_pln=round(pln_sum, 2))
+        return render_template("miinto_stats.html", sum=sum_of_orders, labels=labels, values=order_number, date_labels=date_labels, values_o_number=values_o_number, avg_order_number=avg_order_number, percent_per_country=percent_per_country, summary_prices_pln=tab_price, sum_in_pln=round(pln_sum, 2), month=month)
 
     if request.method == "POST":
         req = request.form
         month = req.get('month')
         all_months = req.get('all')
         if all_months:
-            return redirect(url_for('miint_stats', country=country))
+            return redirect(url_for('miinto_stats', country=country))
 
-        return redirect(url_for('miint_stats', country=country, month=month))
+        return redirect(url_for('miinto_stats', country=country, month=month))
 
     platform_name = f"Platform-{country.upper()}"
 
@@ -206,16 +205,16 @@ def miint_stats(country="", month=""):
     t_1 = []
     tab_price = []
     prices_in_pln = []
-    coursor = -1
+    cursor = -1
     for single_price in date_with_price:
         if single_price[0] not in t_1:
             t_1.append(single_price[0])
             tab_price.append(single_price[1])
             prices_in_pln.append(single_price[2])
-            coursor += 1
+            cursor += 1
         elif single_price[0] in t_1:
-            tab_price[coursor] += single_price[1]
-            prices_in_pln[coursor] += single_price[2]
+            tab_price[cursor] += single_price[1]
+            prices_in_pln[cursor] += single_price[2]
 
     for i in range(len(tab_price)):
         tab_price[i] = round(tab_price[i], 2)
@@ -242,6 +241,7 @@ def miint_stats(country="", month=""):
 
     return render_template("miinto_stats_details.html", order_number=int(sum[0][0]), price = price_sum, prices_sum_pln=round(prices_sum_pln, 2), currency = currency, course=course, date_labels=date_labels, values_o_number=values_o_number, price_date_values=tab_price, country=country, all_country_list=labels, prices_in_pln=prices_in_pln)
 
+# worker update db with new orders
 def orders_worker_miinto(delay):
     def get_data_from_product_list(order_list, date_to_import):
         for order_data in order_list['data']:
@@ -325,14 +325,34 @@ def orders_worker_miinto(delay):
 
 # shows orders from db
 @app.route('/miinto/orders/', methods=['POST', 'GET'])
-@app.route('/miinto/orders/<country>/<amount_on_site>/<offset>/<date>/<order_number>', methods=['POST', 'GET'])
-def order_site_miinto(country="all", amount_on_site="100", offset="0", date="", order_number=''):
+@app.route('/miinto/orders/<country>/<amount_on_site>/<offset>/<date_start>/<date_end>/', methods=['POST', 'GET'])
+@app.route('/miinto/orders/<country>/<amount_on_site>/<offset>/<date_start>/<date_end>/<order_number>', methods=['POST', 'GET'])
+def order_site_miinto(country="all", amount_on_site="100", offset="0", date_start="all", date_end="all", order_number=''):
     conn = sqlite3.connect("mrktplc_data.db")
     c = conn.cursor()
 
-    # when users searcher for specific orders
-    # when searching for orders from all countries
     if request.method == "POST":
+        # handle a next and prev button
+        if request.form['forwardBtn'] == 'nex':  # add 1 to offset
+            # offset is not changing when order_number is specified
+            if not order_number:
+                new_offset = int(offset)+1
+            else:
+                new_offset = offset
+            return redirect(url_for("order_site_miinto", country=country, amount_on_site=amount_on_site, offset=new_offset, date_start=date_start, date_end=date_end, order_number=order_number))
+        if request.form['forwardBtn'] == 'prev':  # add 1 to offset
+
+            # offset is not changing when order_number is specified
+            if not order_number:
+                # offset cannot be <0
+                if int(offset)-1 < 0:
+                    new_offset = 0
+                elif int(offset)-1 >= 0:
+                    new_offset = int(offset)-1
+            else:
+                new_offset = offset
+            return redirect(url_for("order_site_miinto", country=country, amount_on_site=amount_on_site, offset=new_offset, date_start=date_start, date_end=date_end, order_number=order_number))
+        # when user set filters and search for these orders - get filters and redirect for this page but with filters
         if request.form['forwardBtn'] == 'go':
             req = request.form
             session['number_of_orders'] = req.get('number_of_orders')
@@ -342,39 +362,58 @@ def order_site_miinto(country="all", amount_on_site="100", offset="0", date="", 
             session['date_start'] = req.get('date_start')
             session['date_end'] = req.get('date_end')
 
+            # when user not searching by date, pass in url "all" to get data from all periods
+            if not session['date_start']:
+                session['date_start'] = "all"
+            if not session['date_end']:
+                session['date_end'] = "all"
+            # redirect to same site with filters
+            return redirect(url_for("order_site_miinto", country=session['country_name'], amount_on_site=session['number_of_orders'], offset="0", date_start=session['date_start'], date_end=session['date_end'], order_number=session['order_number_input']))
             # if order_number is searched by user - print it
 
-            if session['order_number_input']:
-                query = f"SELECT * FROM miinto_orders_db WHERE order_number = \"{session['order_number_input']}\""
-            else:
-                # build query from form
-                query_1 = "SELECT * FROM miinto_orders_db"
-                query_limit = f" LIMIT {int(session['number_of_orders'])}"
-
-                # if user want to print orders form all countries
-                print(session['country_name'])
-                if session['country_name'] == "all":
-                    query_2 = ""
-                else:
-                    query_2 = f" WHERE country = \"{session['country_name']}\""
-                # when user want to search between dates
-                if session['date_start']:
-                    if session['date_end']:
-                        query_3 = f" AND date(date) BETWEEN date('{session['date_start']}') AND date('{session['date_end']}')"
-                else:
-                    query_3 = ""
-                query = f"{query_1}{query_2}{query_3}{query_limit}"
-                print(query)
-            c.execute(query)
-            orders = c.fetchall()
-            return render_template("miinto_orders.html", orders=orders)
-
-
-    # when site is loaded without parameters print last 500 orderes
+    # when site is loaded for first time or loaded with filters, print last 500 orders
     query = f"SELECT * FROM miinto_orders_db LIMIT 500"
+    # if user pass order number: print only this order
+    if order_number:
+        query = f"SELECT * FROM miinto_orders_db WHERE order_number = \"{session['order_number_input']}\""
+    # if user didn't pass order number
+    else:
+        # when user not searching for specific countries
+        if country == "all":
+            # when user searching for specific date (between two dates)
+            if date_start != "all" and date_end != "all":
+                query = f"SELECT * FROM miinto_orders_db WHERE date(date) BETWEEN date('{session['date_start']}') AND date('{session['date_end']}') LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
+            # when user searching for specific date (after some date - if only date_start is specified)
+            elif date_start != "all" and date_end == "all":
+                query = f"SELECT * FROM miinto_orders_db WHERE date(date) >= date('{session['date_start']}') LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
+            # when user searching for specific date (before some date - if only date_end is specified)
+            elif date_start == "all" and date_end != "all":
+                query = f"SELECT * FROM miinto_orders_db WHERE date(date) <= date('{session['date_end']}') LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
+
+            # when user NOT searching for specific date
+            else:
+                query = f"SELECT * FROM miinto_orders_db LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
+
+        # when user searching for specific countries
+        else:
+            # when user searching for specific date
+            if date_start != "all" and date_end != "all":
+                query = f"SELECT * FROM miinto_orders_db WHERE country = \"{session['country_name']}\" AND date(date) BETWEEN date('{session['date_start']}') AND date('{session['date_end']}') LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
+            # when user searching for specific date (after some date - if only date_start is specified)
+            elif date_start != "all" and date_end == "all":
+                query = f"SELECT * FROM miinto_orders_db WHERE country = \"{session['country_name']}\" AND date(date) >= date('{session['date_start']}') LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
+            # when user searching for specific date (before some date - if only date_end is specified)
+            elif date_start == "all" and date_end != "all":
+                query = f"SELECT * FROM miinto_orders_db WHERE country = \"{session['country_name']}\" AND date(date) <= date('{session['date_end']}') LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
+            # when user not searching for specific date
+            else:
+                query = f"SELECT * FROM miinto_orders_db WHERE country = \"{session['country_name']}\" LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
+
+    visible_orders_count = int(amount_on_site), int(offset)  # used to calculate order number and offset number in jinja2
+    print(query)
     c.execute(query)
     orders = c.fetchall()
-    return render_template("miinto_orders.html", orders=orders)
+    return render_template("miinto_orders.html", orders=orders, visible_orders_count=visible_orders_count)
 
 
 
