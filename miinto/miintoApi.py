@@ -327,7 +327,7 @@ def orders_worker_miinto(delay):
 @app.route('/miinto/orders/', methods=['POST', 'GET'])
 @app.route('/miinto/orders/<country>/<amount_on_site>/<offset>/<date_start>/<date_end>/', methods=['POST', 'GET'])
 @app.route('/miinto/orders/<country>/<amount_on_site>/<offset>/<date_start>/<date_end>/<order_number>', methods=['POST', 'GET'])
-def order_site_miinto(country="all", amount_on_site="100", offset="0", date_start="all", date_end="all", order_number=''):
+def order_site_miinto(country="all", amount_on_site="500", offset="0", date_start="all", date_end="all", order_number=''):
     conn = sqlite3.connect("mrktplc_data.db")
     c = conn.cursor()
 
@@ -372,7 +372,7 @@ def order_site_miinto(country="all", amount_on_site="100", offset="0", date_star
             # if order_number is searched by user - print it
 
     # when site is loaded for first time or loaded with filters, print last 500 orders
-    query = f"SELECT * FROM miinto_orders_db LIMIT 500"
+    query = f"SELECT * FROM miinto_orders_db ORDER BY date DESC LIMIT 500"
     # if user pass order number: print only this order
     if order_number:
         query = f"SELECT * FROM miinto_orders_db WHERE order_number = \"{session['order_number_input']}\""
@@ -382,32 +382,32 @@ def order_site_miinto(country="all", amount_on_site="100", offset="0", date_star
         if country == "all":
             # when user searching for specific date (between two dates)
             if date_start != "all" and date_end != "all":
-                query = f"SELECT * FROM miinto_orders_db WHERE date(date) BETWEEN date('{session['date_start']}') AND date('{session['date_end']}') LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
+                query = f"SELECT * FROM miinto_orders_db WHERE date(date) BETWEEN date('{session['date_start']}') AND date('{session['date_end']}') ORDER BY date DESC LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
             # when user searching for specific date (after some date - if only date_start is specified)
             elif date_start != "all" and date_end == "all":
-                query = f"SELECT * FROM miinto_orders_db WHERE date(date) >= date('{session['date_start']}') LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
+                query = f"SELECT * FROM miinto_orders_db WHERE date(date) >= date('{session['date_start']}') ORDER BY date DESC LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
             # when user searching for specific date (before some date - if only date_end is specified)
             elif date_start == "all" and date_end != "all":
-                query = f"SELECT * FROM miinto_orders_db WHERE date(date) <= date('{session['date_end']}') LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
+                query = f"SELECT * FROM miinto_orders_db WHERE date(date) <= date('{session['date_end']}') ORDER BY date DESC LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
 
             # when user NOT searching for specific date
             else:
-                query = f"SELECT * FROM miinto_orders_db LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
+                query = f"SELECT * FROM miinto_orders_db ORDER BY date DESC LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
 
         # when user searching for specific countries
         else:
             # when user searching for specific date
             if date_start != "all" and date_end != "all":
-                query = f"SELECT * FROM miinto_orders_db WHERE country = \"{session['country_name']}\" AND date(date) BETWEEN date('{session['date_start']}') AND date('{session['date_end']}') LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
+                query = f"SELECT * FROM miinto_orders_db WHERE country = \"{session['country_name']}\" AND date(date) BETWEEN date('{session['date_start']}') AND date('{session['date_end']}') ORDER BY date DESC LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
             # when user searching for specific date (after some date - if only date_start is specified)
             elif date_start != "all" and date_end == "all":
-                query = f"SELECT * FROM miinto_orders_db WHERE country = \"{session['country_name']}\" AND date(date) >= date('{session['date_start']}') LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
+                query = f"SELECT * FROM miinto_orders_db WHERE country = \"{session['country_name']}\" AND date(date) >= date('{session['date_start']}') ORDER BY date DESC LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
             # when user searching for specific date (before some date - if only date_end is specified)
             elif date_start == "all" and date_end != "all":
-                query = f"SELECT * FROM miinto_orders_db WHERE country = \"{session['country_name']}\" AND date(date) <= date('{session['date_end']}') LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
+                query = f"SELECT * FROM miinto_orders_db WHERE country = \"{session['country_name']}\" AND date(date) <= date('{session['date_end']}') ORDER BY date DESC LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
             # when user not searching for specific date
             else:
-                query = f"SELECT * FROM miinto_orders_db WHERE country = \"{session['country_name']}\" LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
+                query = f"SELECT * FROM miinto_orders_db WHERE country = \"{session['country_name']}\" ORDER BY date DESC LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
 
     visible_orders_count = int(amount_on_site), int(offset)  # used to calculate order number and offset number in jinja2
     print(query)
