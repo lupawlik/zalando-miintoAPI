@@ -87,7 +87,7 @@ def order_site(site=0, count=10, date='newest', ord_number='all'):
             return redirect(url_for('order_site', site=int(site) - 1, count=count, date=date, ord_number=ord_number))
 
     orders_data = zalandoApi.get_orders(site, count, date, ord_number) # used when route is loaded/get orders
-
+    print(orders_data)
     visible_orders_count = int(site), int(count)  # used to calculate order number and offset number in jinja2
 
     if count == '1':
@@ -135,7 +135,7 @@ def order_site_approved():
         df['Data'] = list_of_dates
         df.to_excel('approved_orders.xlsx', index=False)
         return send_file('approved_orders.xlsx', as_attachment=True)
-
+    # loads when route visited, without post request
     orders_data = zalandoApi.get_approved_orders()
     return render_template('orders_approved.html', orders=orders_data)
 
@@ -217,6 +217,7 @@ def product_site(ean=0):
             return redirect(url_for('product_site', ean=ean_number))
 
     data = zalandoApi.get_all_product_by_one_ean(ean)  # returns product data
+    print(data)
     return render_template('products.html', data=data)
 
 # url to block offer by ean
@@ -255,6 +256,7 @@ def block_site():
             workers.run_new_thread("ZerowanieIlosciZalando", zalandoApi.set_quantity, ean_list, quantity_list, session['country'])
 
     return render_template("block.html")
+
 
 # if tracking worker is running, uses these variables
 done_tracking = 0

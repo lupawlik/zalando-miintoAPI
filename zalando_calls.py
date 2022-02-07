@@ -5,6 +5,7 @@ import datetime
 from datetime import timedelta
 from string import Template
 import workers
+from itertools import islice
 from zalando_requests import ZalandoRequest
 
 # class contains all necessary api requests
@@ -331,20 +332,27 @@ class ZalandoCall(ZalandoRequest):
 
     # max ean update send in one request is 1000. When sending 1000 rate limit is 1 minute
     def set_quantity(self, list_of_eans, list_of_quantitys, sales_channel):
+        # generate list of chunked listo of eans, max chunk = 1000
+        def chunk_list(list, n):
+            """Yield successive n-sized chunks from lst."""
+            for i in range(0, len(list), n):
+                yield list[i:i + n]
         # create payload from list in params
         # loop is every 1000 eans
 
         # stores if is ean successfully changed quantity or not
         report_data = []
-        for i in range(int(len(list_of_eans)/1000)+1):
+        chunked_list = list(chunk_list(list_of_eans, 999))
+        for i in chunked_list:
             payload = {"items": []}
             # go for every ean in list and add data
-            for i, v in enumerate(list_of_eans):
+            print(i)
+            for j, v in enumerate(i):
                 payload["items"].append(
                     {
                         "sales_channel_id": f"{sales_channel}",
-                        "ean": f"{list_of_eans[i]}",
-                        "quantity": f"{list_of_quantitys[i]}"
+                        "ean": f"{list_of_eans[j]}",
+                        "quantity": f"{list_of_quantitys[j]}"
                     }
                 )
             # updates ean with given quantity
@@ -361,7 +369,7 @@ class ZalandoCall(ZalandoRequest):
                     report_data.append((product['item']['ean'], "ACCEPTED"))
 
             # wait 1 minute if is more than 1000 eans
-            if len(list_of_eans) > 1000:
+            if len(list(chunked_list)) > 1:
                 time.sleep(61)
         print("Successfully changed quantity")
         print(report_data)

@@ -12,30 +12,47 @@ coursers = {"EUR": 0.22, "DKK": 1.63, "PLN": 1, "SEK": 2.29}
 
 from data_base_objects import MiintoOrdersDb
 
-try:  # loads api key to currency converter from yaml
-    with open("pw.yaml", "r") as f:
-        y = yaml.safe_load(f)
-        CURR_CONVERTER_KEY = y['CURRENCY_API']
-except Exception:
-    print("Paste data in pw.yaml. Currency login failed")
 
-#  return exchange rate. Example currency_converter(PLN, EUR) will return pln to euro ratio
-def currency_converter(base_c, in_c):
-    params = {
-        'apikey': CURR_CONVERTER_KEY,
-        'base_currency': base_c,
-        }
-    print(f"Downloading {base_c} to {in_c} course")
-    try:
-        # get courses
-        r = requests.get(f'https://freecurrencyapi.net/api/v2/latest', params=params).json()
-        return r["data"][in_c]
-    except:
-        print(f'Error sending request https://freecurrencyapi.net/api/v2/latest. It was impossible to dowload new courses\n Used {coursers[in_c]}')
-        return coursers[in_c] # when is impossible to load new course, use these from dict
+#  return exchange rate. Example currency_converter("EUR") will return pln to euro ratio
+def currency_converter(to: str, date=''):
+    # when searching for historically coursers
+    if date:
+        status = 404  # 404 means "not courses data from this day" - used in weekends
+        counter_of_skipped_days = 0
+        while status == 404:
+            r = requests.get(f"http://api.nbp.pl/api/exchangerates/rates/a/{to}/{date}/")
+            # when courses are loaded correctly from given day
+            if r.ok:
+                course = r.json()['rates'][0]['mid']
+                course = round(100/(round(float(course), 2)*100), 2)  # reverse number and round to 2 digits after ,
+                print(f"Wczytano kurs {to}: {course}")
+                return course
+            # when is weekend retry loop with day -1 in date, to get courses of prev day
+            else:
+                date = datetime.strptime(date, '%Y-%m-%d')
+                date = date - timedelta(days=1)
+                date = date.strftime('%Y-%m-%d')
+                print(date)
+                # check if is problem with api (if returns non stop 404)
+                counter_of_skipped_days += 1
+                if counter_of_skipped_days > 5:
+                    break
+        print(f"Nie udalo sie pobrac kurs pln - {to} z NBP")
+        return coursers[to]
+    # when searching for current course
+    else:
+        try:
+            r = requests.get(f"http://api.nbp.pl/api/exchangerates/rates/a/{to}/")
+            course = r.json()['rates'][0]['mid']
+            course = round(100/(round(float(course), 2)*100), 2)  # reverse number and round to 2 digits after ,
+            print(f"Wczytano kurs {to}: {course}")
+            return course
+        except:
+            print(f"Nie udalo sie pobrac kursu pln - {to} z NBP")
+            return coursers[to]
 
 
-#  if file with countries exist load it. File is generated with create_mcc() function and returns list of available countries
+#  if file with countries exist load it. File is generated with create_mcc() function and returns list of available countries on miinto
 def load_countries():
     try:
         with open("miinto/countries.txt") as f:
@@ -67,6 +84,7 @@ class MiintoApi(MiintoRequest):
         return self.place_request("GET", f"/shops/{country}/orders", data)
 
 # route to print statistic from miinto, using data from database nad chart.js library
+@app.route("/miinto/", methods=['POST', 'GET'])
 @app.route("/miinto/stats/", methods=['POST', 'GET'])
 @app.route("/miinto/stats/<country>/", methods=['POST', 'GET'])
 @app.route("/miinto/stats/<country>/<month>", methods=['POST', 'GET'])
@@ -107,7 +125,6 @@ def miinto_stats(country="", month=""):
             temp_data = c.fetchall()
             order_number.append(temp_data[0][0])
             sum_of_orders += int(temp_data[0][0])
-        print(f"Wczytano\t{sum}\tzamowien\tz\tSuma")
 
         if month:
             year, month = month.split("-")
@@ -151,6 +168,7 @@ def miinto_stats(country="", month=""):
         date_dict = dict(Counter(dates))
         if not date_dict:
             return render_template("miinto_stats.html", sum=0, labels=0, values=0)
+
         date_labels, values_o_number = zip(*date_dict.items())
         date_labels = list(date_labels)[::-1]
         values_o_number = list(values_o_number)[::-1]
@@ -276,9 +294,9 @@ def orders_worker_miinto(delay):
 
     while True:
         global coursers
-        coursers["EUR"] = currency_converter("PLN", "EUR")
-        coursers["DKK"] = currency_converter("PLN", "DKK")
-        coursers["SEK"] = currency_converter("PLN", "SEK")
+        coursers["EUR"] = currency_converter("EUR")
+        coursers["DKK"] = currency_converter("DKK")
+        coursers["SEK"] = currency_converter("SEK")
         coursers["PLN"] = 1
         #sprawdz ostatnia date importu (z pliku)
         #jezeli plik nie istnieje wczytaj wszystkie zamowienia
@@ -378,7 +396,7 @@ def order_site_miinto(country="all", amount_on_site="500", offset="0", date_star
         query = f"SELECT * FROM miinto_orders_db WHERE order_number = \"{session['order_number_input']}\""
     # if user didn't pass order number
     else:
-        # when user not searching for specific countries
+        # when user not searching for ALL countries
         if country == "all":
             # when user searching for specific date (between two dates)
             if date_start != "all" and date_end != "all":
@@ -394,7 +412,7 @@ def order_site_miinto(country="all", amount_on_site="500", offset="0", date_star
             else:
                 query = f"SELECT * FROM miinto_orders_db ORDER BY date DESC LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
 
-        # when user searching for specific countries
+        # when user searching for SPECIFIC countries
         else:
             # when user searching for specific date
             if date_start != "all" and date_end != "all":
