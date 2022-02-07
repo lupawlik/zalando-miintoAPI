@@ -335,7 +335,7 @@ def orders_worker_miinto(delay):
                        order_list = MiintoApi().get_order_list(country_id, "accepted", str(i*50), "50")
                    trigger = get_data_from_product_list(order_list, date_to_import)
 
-        now = datetime.now() - timedelta(minutes=15)
+        now = datetime.now() - timedelta(hours=1)
         dt_string = now.strftime("%Y-%m-%d %H:%M:%S")
         with open("miinto/last_import.txt", "w") as f:
             f.write(dt_string)

@@ -87,7 +87,6 @@ def order_site(site=0, count=10, date='newest', ord_number='all'):
             return redirect(url_for('order_site', site=int(site) - 1, count=count, date=date, ord_number=ord_number))
 
     orders_data = zalandoApi.get_orders(site, count, date, ord_number) # used when route is loaded/get orders
-    print(orders_data)
     visible_orders_count = int(site), int(count)  # used to calculate order number and offset number in jinja2
 
     if count == '1':
@@ -333,61 +332,6 @@ def tracking_site():
             workers.run_new_thread(worker_name, zalando_labels_worker, data_set, worker_name, mail_to_send)
 
     return render_template('tracking.html', tracking_upload_status=done_tracking, number_to_import=tracking_to_import)
-
-# NOT FINISHED
-# url used to send to another app package with data about orders with api
-# takes data list (example orders number) print it in jinja2
-# for every order, get details and makes session['data_set'], then send it by POST method to another app
-# details of order can be modified before sending by api
-@app.route("/tracking/adjustment/", methods=['POST', 'GET'])
-@app.route("/tracking/adjustment/<order_number>", methods=['POST', 'GET'])
-def tracking_adjustment_site(order_number=''):
-    order_details = ''
-    data = ['10105351216227', '10103353955240', '10103353189027', '10104353187413', '10103352965041', '10103352983322', '10103353000214', '10103354003415']  # example
-    session['ean_list'] = []
-
-    if order_number != '':
-        session['order_number'] = order_number
-
-        session['order_data'] = zalandoApi.get_orders(0, 1, "newest", order_number)  # get orders data to use in get_details_of_order()
-        order_details = session['order_data']
-
-        order_data = zalandoApi.get_details_of_order(session['order_number'])
-        for i, v in enumerate(order_data["orders"]):
-            single_ean = order_data["orders"][i][str(i+1)]["order_details"]["ean"]
-            session['ean_list'].append(single_ean)
-    # if user send new data, create json
-    if request.method == "POST":
-        if request.form['forwardBtn'] == 'submit_new_data':
-            req = request.form
-            session['name'] = req.get('name')
-            session['customer_number'] = req.get('customer_number')
-            session['surname'] = req.get('surname')
-            session['address'] = req.get('address')
-            session['city'] = req.get('city')
-            session['zip_code'] = req.get('zip_code')
-            session['country'] = req.get('country')
-            session['mail'] = req.get('mail')
-            session['ean_list'] = req.getlist('ean_list')
-
-            session['data_set'] = {
-                'customer_number': session['customer_number'],
-                'name': session['name'],
-                'surname': session['surname'],
-                'address1': session['address'],
-                'city': session['city'],
-                'zip_code': session['zip_code'],
-                'country': session['country'],
-                'mail': session['mail'],
-                'ean_list': session['ean_list']
-            }
-            session['data_set'] = json.dumps(session['data_set'])
-            session['data_set'] = json.loads(session['data_set'])
-
-            # request POST to api print(session['data_set'])
-    return render_template('tracking_adjustment.html', data=data, order_number=order_number,
-                           order_details=order_details, ean_list=session['ean_list'])
-
 
 # translate time for jinja2
 @app.context_processor
