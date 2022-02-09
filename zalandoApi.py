@@ -358,7 +358,6 @@ def time_edit():
 
         if now < final_time:
             return "green"
-
         elif now >= final_time:
             return "red"
 
