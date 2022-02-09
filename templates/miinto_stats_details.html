@@ -16,25 +16,31 @@
             </button>
             <div class="dropdown-content">
                 <a class="previous" href ="/miinto/stats/">Wszystkie rynki</a>
+                <a class="previous" href ="/miinto/stats/be">Belgia</a>
                 <a class="previous" href ="/miinto/stats/dk">Dania</a>
+                <a class="previous" href ="/miinto/stats/fi">Finlandia</a>
+                <a class="previous" href ="/miinto/stats/fr">Francja</a>
+                <a class="previous" href ="/miinto/stats/es">Hiszpania</a>
                 <a class="previous" href ="/miinto/stats/nl">Holandia</a>
+                <a class="previous" href ="/miinto/stats/de">Niemcy</a>
                 <a class="previous" href ="/miinto/stats/pl">Polska</a>
                 <a class="previous" href ="/miinto/stats/se">Szwecja</a>
             </div>
         </div>
     </div>
+    <center><h1>{{ (url_for(request.endpoint, **request.view_args)).replace("/miinto/stats/", "") }}</h1></center>
     {% if currency != "PLN" %}
-        Kwota zamowien: {{'%0.2f' % price}} {{currency}} ({{ prices_sum_pln }} PLN)</br>
+    <center> <h4>Kwota zamowien: {{'%0.2f' % price}} {{currency}} ({{ prices_sum_pln }} PLN)</h4></center>
         {% set avg_b = '%0.2f' % (price|int/order_number|int) %}
 
         {% set avg_in_pln = '%0.2f' % (avg_b|float/course) %}
-        Srednia wartosc koszyka: {{avg_b}} {{currency}} ({{ avg_in_pln }} PLN)
+       <center> <h4> Srednia wartosc koszyka: {{avg_b}} {{currency}} ({{ avg_in_pln }} PLN)</h4></center>
     {% else %}
-        Kwota zamowien: {{'%0.2f' % price}} {{currency}}</br>
+        <center> <h4>Kwota zamowien: {{'%0.2f' % price}} {{currency}}</h4></center>
         {% set avg_b = '%0.2f' % (price|int/order_number|int) %}
 
         {% set avg_in_pln = '%0.2f' % (avg_b|float/course) %}
-        Srednia wartosc koszyka: {{avg_b}} {{currency}}
+      <center> <h4>Srednia wartosc koszyka: {{avg_b}} {{currency}}</h4></center>
     {% endif %}
 
     </br>

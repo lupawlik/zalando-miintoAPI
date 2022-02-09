@@ -126,15 +126,16 @@ def miinto_stats(country="", month=""):
             order_number.append(temp_data[0][0])
             sum_of_orders += int(temp_data[0][0])
 
+        # when user provide date in form
+        # select from db with date
         if month:
             year, month = month.split("-")
             query = f"SELECT * FROM miinto_orders_db WHERE strftime('%m', date) = '{month}' AND strftime('%Y', date) = '{year}' ORDER BY date DESC"
-
+        # else select all
         elif not month:
             query = f"SELECT * FROM miinto_orders_db ORDER BY date DESC"
 
         c.execute(query)
-
         rows = list(c.fetchall())
 
         #wyliczanie sumy kwot w pln z kazdego kraju
@@ -298,10 +299,10 @@ def orders_worker_miinto(delay):
         coursers["DKK"] = currency_converter("DKK")
         coursers["SEK"] = currency_converter("SEK")
         coursers["PLN"] = 1
-        #sprawdz ostatnia date importu (z pliku)
-        #jezeli plik nie istnieje wczytaj wszystkie zamowienia
-        #znajduje wszystkie zamowienia z kazdego kraju z listy do ostatniej daty importu - zoptymalizowane do minimalnej ilosci requestow
-        #zapisuj zamowienia do bazy dancyh (data, cena, kraj, imie i nazwisko) biorac pod uwage date ostatniego importu z pliku-10min
+        # sprawdz ostatnia date importu (z pliku)
+        # jezeli plik nie istnieje wczytaj wszystkie zamowienia
+        # znajduje wszystkie zamowienia z kazdego kraju z listy do ostatniej daty importu - zoptymalizowane do minimalnej ilosci requestow
+        # zapisuj zamowienia do bazy dancyh (data, cena, kraj, imie i nazwisko) biorac pod uwage date ostatniego importu z pliku-10min
 
         date_to_import = "2021-12-01 08:00:00"
         if not os.path.isfile('miinto/last_import.txt'):
