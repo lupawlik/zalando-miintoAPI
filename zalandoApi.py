@@ -260,6 +260,7 @@ def block_site():
 # if tracking worker is running, uses these variables
 done_tracking = 0
 tracking_to_import = 0
+
 # worker to upload label, return label and status. Takes list of tuples[(order_number, label, return_label), (order_number, label, return_label)...]
 def zalando_labels_worker(data_set, worker_name, mail):
     global done_tracking
@@ -276,6 +277,7 @@ def zalando_labels_worker(data_set, worker_name, mail):
             report.append((i[0], r.status_code))
         except:
             report.append((i[0], "404"))
+
         done_tracking += 1
     report_text = ""
     for i in report:
@@ -363,7 +365,6 @@ def time_edit():
 
     return dict(change_time=change_time, get_time_delay=get_time_delay)
 
-
 # ZALANDO ORDER WORKER #
 # run with treading, takes time in seconds to next run
 # import orders from zalando to db every time
@@ -396,7 +397,7 @@ def orders_worker(delay):
 
 
 # function that starts the thread
-# workers.run_new_thread(name_of_worker, function, params)
+# workers.run_new_thread(name_of_worker, target function, params)
 def thread_starter():
     workers.run_new_thread("ZamowieniaZalando5m", orders_worker, 300)  # runs zalando orders worker
     workers.run_new_thread("ZamowieniaMiinto1h", miintoApi.orders_worker_miinto, 3600)  # runs miinto orders worker

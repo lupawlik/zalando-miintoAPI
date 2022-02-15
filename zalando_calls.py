@@ -1,11 +1,9 @@
 # contains all functions communicating with api zalando
-
 import time
 import datetime
 from datetime import timedelta
 from string import Template
 import workers
-from itertools import islice
 from zalando_requests import ZalandoRequest
 
 # class contains all necessary api requests
@@ -375,6 +373,4 @@ class ZalandoCall(ZalandoRequest):
         print(report_data)
         workers.del_from_list("ZerowanieIlosciZalando")
         return report_data
-
-
 

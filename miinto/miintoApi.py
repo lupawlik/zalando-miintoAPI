@@ -1,7 +1,7 @@
 import json, requests, time, os, sqlite3, yaml
 
 from datetime import datetime, timedelta
-
+from calendar import monthrange
 from collections import Counter
 from miinto.miinto_requests import create_mcc, MiintoRequest
 from flask import request, redirect, url_for, render_template, session
@@ -13,7 +13,7 @@ coursers = {"EUR": 0.22, "DKK": 1.63, "PLN": 1, "SEK": 2.29}
 from data_base_objects import MiintoOrdersDb
 
 
-#  return exchange rate. Example currency_converter("EUR") will return pln to euro ratio
+# return exchange rate. Example currency_converter("EUR") will return pln to euro ratio
 def currency_converter(to: str, date=''):
     # when searching for historically coursers
     if date:
@@ -50,7 +50,6 @@ def currency_converter(to: str, date=''):
         except:
             print(f"Nie udalo sie pobrac kursu pln - {to} z NBP")
             return coursers[to]
-
 
 #  if file with countries exist load it. File is generated with create_mcc() function and returns list of available countries on miinto
 def load_countries():
@@ -93,9 +92,9 @@ def miinto_stats(country="", month=""):
     countries = load_countries()
     labels = [co for co in countries]
 
-    # if user is not searching by specific month, print orders for all months
+    # if user is not searching stats from specific country = search from all countries
+    # get dates, orders for each country and prices for each orders
     if not country or country == "all":
-
         # when users uses form to filter orders
         if request.method == "POST":
             req = request.form
@@ -108,12 +107,11 @@ def miinto_stats(country="", month=""):
 
         conn = sqlite3.connect("mrktplc_data.db")
         c = conn.cursor()
-
         order_number = []  # stores sum of orders from all countries in list
-        sum = 0
-        sum_of_orders = 0 # stores sum of orders from all countries summary
+        sum_of_orders = 0  # stores sum of orders from all countries summary
 
-        for co in countries:  # go for every available country
+        # go for every available country
+        for co in countries:
             # get number of order by month or from all of time
             if not month:
                 query = f"SELECT COUNT(*) FROM miinto_orders_db WHERE country = \"{co}\""
@@ -138,14 +136,12 @@ def miinto_stats(country="", month=""):
         c.execute(query)
         rows = list(c.fetchall())
 
-        #wyliczanie sumy kwot w pln z kazdego kraju
+        # counts a price of orders for each day and each country
         dates = []
         date_with_price = []
-
         pln_sum = 0
         for row in rows:
             single_date = row[2].split(" ")[0]
-
             dates.append(single_date)
             date_with_price.append((single_date, float(row[4])))
             pln_sum += float(row[4])
@@ -153,6 +149,7 @@ def miinto_stats(country="", month=""):
         t_1 = []
         tab_price = []
         cursor = -1
+
         for single_price in date_with_price:
             if single_price[0] not in t_1:
                 t_1.append(single_price[0])
@@ -172,6 +169,7 @@ def miinto_stats(country="", month=""):
 
         date_labels, values_o_number = zip(*date_dict.items())
         date_labels = list(date_labels)[::-1]
+
         values_o_number = list(values_o_number)[::-1]
 
         avg_order_number = round(sum_of_orders/len(date_labels), 1)
@@ -181,6 +179,7 @@ def miinto_stats(country="", month=""):
 
         return render_template("miinto_stats.html", sum=sum_of_orders, labels=labels, values=order_number, date_labels=date_labels, values_o_number=values_o_number, avg_order_number=avg_order_number, percent_per_country=percent_per_country, summary_prices_pln=tab_price, sum_in_pln=round(pln_sum, 2), month=month)
 
+    # THAT'S RUN ONLY FOR STATISTIC FROM SPECIFIC COUNTRY
     if request.method == "POST":
         req = request.form
         month = req.get('month')
@@ -201,6 +200,8 @@ def miinto_stats(country="", month=""):
         year, month = month.split("-")
         query = f"SELECT * FROM miinto_orders_db WHERE country = \"{platform_name}\" AND strftime('%m', date) = '{month}' AND strftime('%Y', date) = '{year}' ORDER BY date DESC"
         print(query)
+        num_days = monthrange(int(year), int(month))[1]  # num_days = 28
+
     else:
         query = f"SELECT * FROM miinto_orders_db WHERE country = \"{platform_name}\"  ORDER BY date DESC"
         print(query)
@@ -225,6 +226,8 @@ def miinto_stats(country="", month=""):
     tab_price = []
     prices_in_pln = []
     cursor = -1
+    # add days with 0 orders to table_with prices
+
     for single_price in date_with_price:
         if single_price[0] not in t_1:
             t_1.append(single_price[0])
@@ -242,10 +245,12 @@ def miinto_stats(country="", month=""):
 
     date_dict = dict(Counter(dates))
     if not date_dict:
-        return render_template("miinto_stats.html", sum=0, labels=0, values=0)
+        return render_template("miinto_stats_details.html", price=1, order_number=1, course=1)
+
     date_labels, values_o_number = zip(*date_dict.items())
-    date_labels = list(date_labels)[::-1]
+
     values_o_number = list(values_o_number)[::-1]
+    date_labels = list(date_labels)[::-1]
 
     currency = rows[0][5]
 
@@ -258,7 +263,7 @@ def miinto_stats(country="", month=""):
     sum = c.fetchall()
     course = coursers[currency]
 
-    return render_template("miinto_stats_details.html", order_number=int(sum[0][0]), price = price_sum, prices_sum_pln=round(prices_sum_pln, 2), currency = currency, course=course, date_labels=date_labels, values_o_number=values_o_number, price_date_values=tab_price, country=country, all_country_list=labels, prices_in_pln=prices_in_pln)
+    return render_template("miinto_stats_details.html", order_number=int(sum[0][0]), price = price_sum, prices_sum_pln=round(prices_sum_pln, 2), currency=currency, course=course, date_labels=date_labels, values_o_number=values_o_number, price_date_values=tab_price, country=country, all_country_list=labels, prices_in_pln=prices_in_pln)
 
 # worker update db with new orders
 def orders_worker_miinto(delay):
