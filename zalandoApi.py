@@ -1,4 +1,5 @@
-import json, time, datetime
+import time, datetime
+import os
 from datetime import timedelta
 import threading
 from flask import Flask, request, redirect, url_for, session, jsonify, render_template, send_file
@@ -16,7 +17,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mrktplc_data.db'
 zalandoApi = ZalandoCall()
 db = SQLAlchemy(app)
 
-from data_base_objects import Returns_db, Orders_db
+from data_base_objects import Returns_db, Orders_db, ZalandoOrders
 import miinto.miintoApi as miintoApi
 
 
@@ -369,31 +370,66 @@ def time_edit():
 # run with treading, takes time in seconds to next run
 # import orders from zalando to db every time
 def orders_worker(delay):
-    try:
+
         while True:
+            date_to_import = "2021-12-01 08:00:00"
+            if not os.path.isfile('zalando_last_order_import.txt'):
+                date_to_import = datetime.datetime.strptime(date_to_import, "%Y-%m-%d %H:%M:%S")
+                with open("zalando_last_order_import.txt", "w+") as f:
+                    f.write(f"2021-06-01 08:00:00")
+            else:
+                with open('zalando_last_order_import.txt') as f:
+                    date_to_import = f.readline()
+                    date_to_import = datetime.datetime.strptime(date_to_import, "%Y-%m-%d %H:%M:%S")
+
+
             print("\nWorker zalando orders")
             print("************************************")
-            orders_data = zalandoApi.get_last_hour_orders()  # return orders from last hour
+            orders_data = zalandoApi.get_order_to_date(date_to_import)  # return orders from given date
+            for order in orders_data:
+                for single in order['data']:
+                    order_number = single["attributes"]["order_number"]
+                    zalando_id = single["id"]
+                    order_date = datetime.datetime.strptime(single["attributes"]["order_date"][:-10], "%Y-%m-%dT%H:%M:%S")  # get date of order to pass to db
+                    try:
+                        delivery_end_date = datetime.datetime.strptime(single["attributes"]["delivery_end_date"][:-10], "%Y-%m-%dT%H:%M:%S")
+                        final_end_time = delivery_end_date + timedelta(hours=1)
+                    except:
+                        final_end_time= ""
+                    final_time = order_date + timedelta(hours=1)
 
-            for single_order in orders_data['data']:
-                order_number = single_order["attributes"]["order_number"]
-                order_date = datetime.datetime.strptime(single_order["attributes"]["order_date"][:-10], "%Y-%m-%dT%H:%M:%S")  # get date of order to pass to db
 
-                final_time = order_date + timedelta(hours=1)
-                order_price = single_order["attributes"]["order_lines_price_amount"]  # get price in order to pass to db
-                ord = Orders_db(order_number, final_time, str(order_price))  # add order
-                db.session.add(ord)
-                try:
-                    db.session.commit()
-                    print(f"{order_number} added to Zalando orders {final_time}")  # if the order has already been added, skip it. If not add
-                except Exception as e:
-                    db.session.rollback()
-                    print(f"{order_number} skipped Zalando order {final_time}")
-                    #print(e)
+                    order_price = single["attributes"]["order_lines_price_amount"]
+                    currency = single["attributes"]["order_lines_price_currency"]
+                    first_name = single["attributes"]["shipping_address"]["first_name"]
+                    last_name = single["attributes"]["shipping_address"]["last_name"]
+                    address_line = single["attributes"]["shipping_address"]["address_line_1"]
+                    city = single["attributes"]["shipping_address"]["city"]
+                    zip_code = single["attributes"]["shipping_address"]["zip_code"]
+                    country_code = single["attributes"]["shipping_address"]["country_code"]
+                    status = single["attributes"]["status"]
+                    tracking = single["attributes"]["tracking_number"]
+                    return_tracking = single["attributes"]["return_tracking_number"]
+
+                    ord = ZalandoOrders(order_number, zalando_id, final_time, final_end_time, order_price, currency, first_name, last_name, address_line, city, zip_code, country_code, status, tracking, return_tracking)  # add order
+                    db.session.add(ord)
+                    try:
+                        db.session.commit()
+                        print(
+                            f"{order_number} added to Zalando orders {final_time}")  # if the order has already been added, skip it. If not add
+                    except Exception as e:
+                        db.session.rollback()
+                        print(f"{order_number} skipped Zalando order {final_time}")
+                        # print(e)
+
             print("************************************\n")
+            # save to file new date to import -2 hours (to be sure not to skip any lated order)
+            now = datetime.datetime.now() - timedelta(hours=2)
+            dt_string = now.strftime("%Y-%m-%d %H:%M:%S")
+            with open("zalando_last_order_import.txt", "w") as f:
+                f.write(dt_string)
             time.sleep(delay)
-    except:
-        return 0
+
 
 
 # function that starts the thread

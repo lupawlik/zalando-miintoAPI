@@ -26,6 +26,42 @@ class Orders_db(db.Model):
         self.data = data
         self.price = price
 
+# table with order on zalando
+class ZalandoOrders(db.Model):
+    id = db.Column('id', db.Integer, primary_key = True)
+    order_number = db.Column('order_number', db.String(30), nullable=False, unique=True)
+    zalando_id = db.Column('zalando_id', db.String(50))
+    price = db.Column('price', db.String(16))
+    currency = db.Column('currency', db.String(16))
+    first_name = db.Column('first_name', db.String(100))
+    last_name = db.Column('last_name', db.String(100))
+    address_line_1 = db.Column('address_line_1', db.String(200))
+    city = db.Column('city', db.String(100))
+    zip_code = db.Column('zip_code', db.String(20))
+    country_code = db.Column('country_code', db.String(20))
+    status = db.Column('status', db.String(30))
+    tracking_number = db.Column('tracking_number', db.String(30))
+    return_tracking_number = db.Column('return_tracking_number', db.String(30))
+    data = db.Column('date', db.DateTime, nullable=False, default=datetime.utcnow)
+    data_end = db.Column('date_end', db.DateTime, nullable=False, default=datetime.utcnow)
+
+    def __init__(self, order_number, zalando_id, data, data_end, price, currency, first_name, last_name, address_line_1, city, zip_code, country_code, status, tracking_number, return_tracking_number):
+        self.order_number = order_number
+        self.zalando_id = zalando_id
+        self.data = data
+        self.data_end = data_end
+        self.price = price
+        self.currency = currency
+        self.first_name = first_name
+        self.last_name = last_name
+        self.address_line_1 = address_line_1
+        self.city = city
+        self.zip_code = zip_code
+        self.country_code = country_code
+        self.status = status
+        self.tracking_number = tracking_number
+        self.return_tracking_number = return_tracking_number
+
 # table with order on miinto
 class MiintoOrdersDb(db.Model):
     id = db.Column('id', db.Integer, primary_key = True)

@@ -54,17 +54,46 @@ class ZalandoCall(ZalandoRequest):
         return data_tab
 
     # return order from last hour, used in zalando orders worker
-    def get_last_hour_orders(self):
-        now = (datetime.datetime.now() - timedelta(hours=2)).replace(microsecond=0).isoformat()  # get time -2 hours
-        now = str(now)+"Z"
+    def get_order_to_date(self, date):
+        date = date.strftime("%Y-%m-%dT%H:%M:%S")+"+01:00"
+        print(date)
+        # stores list of all data from all sites
+        list_of_all_orders = []
         params={
             'page[size]': 1000,
-            'created_after': now,
+            'created_after': date,
             }
 
         r = self.place_request("GET", "/merchants/{merchant_id}/orders", params)
+        list_of_all_orders.append(r)
+        # check if request contains more than 1000 result if true, make another requests until all orders will be collected
+        is_next_site = False
+        next_site = 0
+        if "next" in r['links']:
+            # get next order number from url
+            next_site = int(r['links']['next'][-1])
+            is_next_site = True
+            print(f"Wczytano: {next_site*1000} ofert")
+
+        while is_next_site:
+            time.sleep(5)
+            params = {
+                'page[size]': 1000,
+                'created_after': date,
+                'page[number]': next_site,
+            }
+            r = self.place_request("GET", "/merchants/{merchant_id}/orders", params)
+            list_of_all_orders.append(r)
+            if "next" in r['links']:
+                # get next order number from url
+                next_site += 1
+                print(f"Wczytano: {next_site*1000} ofert")
+            else:
+                is_next_site = False
+                print("Wczytano wszystko")
+
         try:
-            return r
+            return list_of_all_orders
         except:
             return 0
 
