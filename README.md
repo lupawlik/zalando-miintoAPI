@@ -2,7 +2,7 @@
 
 ## Launch
 - Create virutal enviroment: ```python3 -m venv```
-- Starting virtual eviroment: Windows: ```venv\Scripts\activate.bat```; Linux: ```source venv\Scripts\activate.bat```
+- Starting virtual eviroment: Windows: ```venv\Scripts\activate.bat```; Linux: ```source venv\Scripts\activate```
 - Installing libraries: ```pip install -r requirements.txt```
 - In file pw.yaml paste tokens and password like in pw-example.yaml
 - Starting app: ```python3 zalandoApi.py```
