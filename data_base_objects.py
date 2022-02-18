@@ -32,6 +32,7 @@ class ZalandoOrders(db.Model):
     order_number = db.Column('order_number', db.String(30), nullable=False, unique=True)
     zalando_id = db.Column('zalando_id', db.String(50))
     price = db.Column('price', db.String(16))
+    returned_price = db.Column('returned_price', db.String(16))
     currency = db.Column('currency', db.String(16))
     first_name = db.Column('first_name', db.String(100))
     last_name = db.Column('last_name', db.String(100))
@@ -42,10 +43,12 @@ class ZalandoOrders(db.Model):
     status = db.Column('status', db.String(30))
     tracking_number = db.Column('tracking_number', db.String(30))
     return_tracking_number = db.Column('return_tracking_number', db.String(30))
+    items_amount = db.Column('items_amount', db.Integer)
+    items_returned_amount = db.Column('items_returned_amount', db.Integer)
     data = db.Column('date', db.DateTime, nullable=False, default=datetime.utcnow)
     data_end = db.Column('date_end', db.DateTime, nullable=False, default=datetime.utcnow)
 
-    def __init__(self, order_number, zalando_id, data, data_end, price, currency, first_name, last_name, address_line_1, city, zip_code, country_code, status, tracking_number, return_tracking_number):
+    def __init__(self, order_number, zalando_id, data, data_end, price, currency, first_name, last_name, address_line_1, city, zip_code, country_code, status, tracking_number, return_tracking_number, items_amount):
         self.order_number = order_number
         self.zalando_id = zalando_id
         self.data = data
@@ -61,6 +64,7 @@ class ZalandoOrders(db.Model):
         self.status = status
         self.tracking_number = tracking_number
         self.return_tracking_number = return_tracking_number
+        self.items_amount = items_amount
 
 # table with order on miinto
 class MiintoOrdersDb(db.Model):
