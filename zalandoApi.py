@@ -57,7 +57,7 @@ def index():
     db_df = pd.read_sql_query(f"SELECT COUNT(id) FROM returns_db WHERE date(date) BETWEEN date('{today_first}') AND date('{today_end}')", conn)
     returns_number = str(db_df['COUNT(id)'][0])
 
-    db_df = pd.read_sql_query(f"SELECT COUNT(id) FROM orders_db WHERE date(date) BETWEEN date('{today_first}') AND date('{today_end}')", conn)
+    db_df = pd.read_sql_query(f"SELECT COUNT(id) FROM zalando_orders WHERE date(date) BETWEEN date('{today_first}') AND date('{today_end}')", conn)
     orders_number = str(db_df['COUNT(id)'][0])
 
     return render_template('index.html', workers=workers.get_list_of_threads(), returns_number=returns_number, orders_number=orders_number)
@@ -217,7 +217,6 @@ def product_site(ean=0):
             return redirect(url_for('product_site', ean=ean_number))
 
     data = zalandoApi.get_all_product_by_one_ean(ean)  # returns product data
-    print(data)
     return render_template('products.html', data=data)
 
 # url to block offer by ean
@@ -267,6 +266,8 @@ def zalando_labels_worker(data_set, worker_name, mail):
     global done_tracking
     global tracking_to_import
     report = []
+    conn = sqlite3.connect("mrktplc_data.db")
+    c = conn.cursor()
     for i in data_set:
         print(f"Adding tracking {i[1]}, return tracking {i[2]} to order {i[0]}")
         if str(i[1]) == "nan" or str(i[2]) == "nan":
@@ -276,10 +277,15 @@ def zalando_labels_worker(data_set, worker_name, mail):
         try:
             r = zalandoApi.update_tracking(i[0], i[1], i[2], "shipped")
             report.append((i[0], r.status_code))
+            # when success - update order in db
+            query = f"UPDATE zalando_orders SET status = 'fulfilled', tracking_number = '{i[1]}', return_tracking_number = '{i[2]}' WHERE order_number = '{i[0]}'"
+            c.execute(query)
+
         except:
             report.append((i[0], "404"))
 
         done_tracking += 1
+    conn.commit()
     report_text = ""
     for i in report:
         if i[1] == 204 or i[1] == "204":
@@ -295,7 +301,7 @@ def zalando_labels_worker(data_set, worker_name, mail):
     except:
         print("Nie mozna bylo wyslac wiadomosci")
 
-#  url to update order status and pass tracking numbers
+# url to update order status and pass tracking numbers
 @app.route("/tracking/", methods=['POST', 'GET'])
 def tracking_site():
     if request.method == "POST":
@@ -304,8 +310,16 @@ def tracking_site():
             session['order_nr'] = req.get('order_id')
             session['tracking'] = req.get('track_num')
             session['return_tracking'] = req.get('ret_track')
-            session['stauts'] = req.get('status')
-            zalandoApi.update_tracking(session['order_nr'], session['tracking'], session['return_tracking'], session['stauts'])  # tracking, return_tracking, statsu CAN be empty
+            session['status'] = req.get('status')
+            zalandoApi.update_tracking(session['order_nr'], session['tracking'], session['return_tracking'], session['status'])  # tracking, return_tracking, statsu CAN be empty
+
+            # add new data to db
+            conn = sqlite3.connect("mrktplc_data.db")
+            c = conn.cursor()
+            query = f"UPDATE zalando_orders SET status = '{session['status']}', tracking_number = '{session['tracking']}', return_tracking_number = '{session['return_tracking']}' WHERE order_number = '{session['order_nr']}'"
+            c.execute(query)
+            conn.commit()
+            conn.close()
         # import data from xlsx file, run worker to uploads all tracking to zalando.
         # show progress on html pag
         # when worker stops, remove from worker list and send mail to user
@@ -369,6 +383,7 @@ def time_edit():
 # ZALANDO ORDER WORKER #
 # run with treading, takes time in seconds to next run
 # import orders from zalando to db every time
+# creates file with date of last import
 def orders_worker(delay):
 
         while True:
@@ -398,7 +413,6 @@ def orders_worker(delay):
                         final_end_time= ""
                     final_time = order_date + timedelta(hours=1)
 
-
                     order_price = single["attributes"]["order_lines_price_amount"]
                     currency = single["attributes"]["order_lines_price_currency"]
                     first_name = single["attributes"]["shipping_address"]["first_name"]
@@ -410,8 +424,9 @@ def orders_worker(delay):
                     status = single["attributes"]["status"]
                     tracking = single["attributes"]["tracking_number"]
                     return_tracking = single["attributes"]["return_tracking_number"]
+                    items_amount = single["attributes"]["order_lines_count"]
 
-                    ord = ZalandoOrders(order_number, zalando_id, final_time, final_end_time, order_price, currency, first_name, last_name, address_line, city, zip_code, country_code, status, tracking, return_tracking)  # add order
+                    ord = ZalandoOrders(order_number, zalando_id, final_time, final_end_time, order_price, currency, first_name, last_name, address_line, city, zip_code, country_code, status, tracking, return_tracking, items_amount)  # add order
                     db.session.add(ord)
                     try:
                         db.session.commit()
@@ -429,8 +444,6 @@ def orders_worker(delay):
             with open("zalando_last_order_import.txt", "w") as f:
                 f.write(dt_string)
             time.sleep(delay)
-
-
 
 # function that starts the thread
 # workers.run_new_thread(name_of_worker, target function, params)
