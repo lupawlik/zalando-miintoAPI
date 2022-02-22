@@ -46,7 +46,7 @@ class ZalandoOrders(db.Model):
     items_amount = db.Column('items_amount', db.Integer)
     items_returned_amount = db.Column('items_returned_amount', db.Integer)
     data = db.Column('date', db.DateTime, nullable=False, default=datetime.utcnow)
-    data_end = db.Column('date_end', db.DateTime, nullable=False, default=datetime.utcnow)
+    data_end = db.Column('date_end', db.DateTime)
 
     def __init__(self, order_number, zalando_id, data, data_end, price, currency, first_name, last_name, address_line_1, city, zip_code, country_code, status, tracking_number, return_tracking_number, items_amount):
         self.order_number = order_number

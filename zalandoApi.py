@@ -410,7 +410,7 @@ def orders_worker(delay):
                         delivery_end_date = datetime.datetime.strptime(single["attributes"]["delivery_end_date"][:-10], "%Y-%m-%dT%H:%M:%S")
                         final_end_time = delivery_end_date + timedelta(hours=1)
                     except:
-                        final_end_time= ""
+                        final_end_time = None
                     final_time = order_date + timedelta(hours=1)
 
                     order_price = single["attributes"]["order_lines_price_amount"]
