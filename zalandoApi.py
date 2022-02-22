@@ -48,7 +48,7 @@ def kill_worker(name=None):
 # main page of app, shows number of orders, returns and names of running workers
 @app.route('/')
 def index():
-    conn = sqlite3.connect("mrktplc_data.db")
+    conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
     today = datetime.date.today()
     today_first = str(today) + " 00:00:00.00"
     today_end = str(today) + " 23:59:59.99"
@@ -183,7 +183,7 @@ def return_site():
 
                 # update order data in db
                 try:
-                    conn = sqlite3.connect("mrktplc_data.db")
+                    conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
                     c = conn.cursor()
                     query = f"UPDATE zalando_orders SET returned_price = '{str(price)}', items_returned_amount = '{len(eans.split(' '))-1}' WHERE order_number = '{order_id}'"
                     print(query)
@@ -203,7 +203,7 @@ def return_site():
             if session['date_start'] == session['date_end']:  # if date same, get data from all day
                 session['date_end'] = f"{req.get('db_date_end')} 23:59:59.000000"
 
-            conn = sqlite3.connect("mrktplc_data.db")
+            conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
             db_df = pd.read_sql_query(f"SELECT * FROM returns_db WHERE date(date) BETWEEN date('{session['date_start']}') AND date('{session['date_end']}')", conn)  # get data returns between date
             db_df.to_excel('returns_raport.xlsx', index=False)  # save data in excel format
 
@@ -277,7 +277,7 @@ def zalando_labels_worker(data_set, worker_name, mail):
     global done_tracking
     global tracking_to_import
     report = []
-    conn = sqlite3.connect("mrktplc_data.db")
+    conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
     c = conn.cursor()
     for i in data_set:
         print(f"Adding tracking {i[1]}, return tracking {i[2]} to order {i[0]}")
@@ -325,7 +325,7 @@ def tracking_site():
             zalandoApi.update_tracking(session['order_nr'], session['tracking'], session['return_tracking'], session['status'])  # tracking, return_tracking, statsu CAN be empty
 
             # add new data to db
-            conn = sqlite3.connect("mrktplc_data.db")
+            conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
             c = conn.cursor()
             query = f"UPDATE zalando_orders SET status = '{session['status']}', tracking_number = '{session['tracking']}', return_tracking_number = '{session['return_tracking']}' WHERE order_number = '{session['order_nr']}'"
             c.execute(query)
@@ -396,65 +396,67 @@ def time_edit():
 # import orders from zalando to db every time
 # creates file with date of last import
 def orders_worker(delay):
-
-        while True:
-            date_to_import = "2021-12-01 08:00:00"
-            if not os.path.isfile('zalando_last_order_import.txt'):
+    while True:
+        date_to_import = "2021-12-01 08:00:00"
+        if not os.path.isfile('zalando_last_order_import.txt'):
+            date_to_import = datetime.datetime.strptime(date_to_import, "%Y-%m-%d %H:%M:%S")
+            with open("zalando_last_order_import.txt", "w+") as f:
+                f.write(f"2021-06-01 08:00:00")
+        else:
+            with open('zalando_last_order_import.txt') as f:
+                date_to_import = f.readline()
                 date_to_import = datetime.datetime.strptime(date_to_import, "%Y-%m-%d %H:%M:%S")
-                with open("zalando_last_order_import.txt", "w+") as f:
-                    f.write(f"2021-06-01 08:00:00")
-            else:
-                with open('zalando_last_order_import.txt') as f:
-                    date_to_import = f.readline()
-                    date_to_import = datetime.datetime.strptime(date_to_import, "%Y-%m-%d %H:%M:%S")
 
+        print("\nWorker zalando orders")
+        print("************************************")
+        orders_data = zalandoApi.get_order_to_date(date_to_import)  # return orders from given date
+        for order in orders_data:
+            for single in order['data']:
+                order_number = single["attributes"]["order_number"]
+                zalando_id = single["id"]
+                order_date = datetime.datetime.strptime(single["attributes"]["order_date"][:-10],
+                                                        "%Y-%m-%dT%H:%M:%S")  # get date of order to pass to db
+                try:
+                    delivery_end_date = datetime.datetime.strptime(single["attributes"]["delivery_end_date"][:-10],
+                                                                   "%Y-%m-%dT%H:%M:%S")
+                    final_end_time = delivery_end_date + timedelta(hours=1)
+                except:
+                    final_end_time = None
+                final_time = order_date + timedelta(hours=1)
 
-            print("\nWorker zalando orders")
-            print("************************************")
-            orders_data = zalandoApi.get_order_to_date(date_to_import)  # return orders from given date
-            for order in orders_data:
-                for single in order['data']:
-                    order_number = single["attributes"]["order_number"]
-                    zalando_id = single["id"]
-                    order_date = datetime.datetime.strptime(single["attributes"]["order_date"][:-10], "%Y-%m-%dT%H:%M:%S")  # get date of order to pass to db
-                    try:
-                        delivery_end_date = datetime.datetime.strptime(single["attributes"]["delivery_end_date"][:-10], "%Y-%m-%dT%H:%M:%S")
-                        final_end_time = delivery_end_date + timedelta(hours=1)
-                    except:
-                        final_end_time = None
-                    final_time = order_date + timedelta(hours=1)
+                order_price = single["attributes"]["order_lines_price_amount"]
+                currency = single["attributes"]["order_lines_price_currency"]
+                first_name = single["attributes"]["shipping_address"]["first_name"]
+                last_name = single["attributes"]["shipping_address"]["last_name"]
+                address_line = single["attributes"]["shipping_address"]["address_line_1"]
+                city = single["attributes"]["shipping_address"]["city"]
+                zip_code = single["attributes"]["shipping_address"]["zip_code"]
+                country_code = single["attributes"]["shipping_address"]["country_code"]
+                status = single["attributes"]["status"]
+                tracking = single["attributes"]["tracking_number"]
+                return_tracking = single["attributes"]["return_tracking_number"]
+                items_amount = single["attributes"]["order_lines_count"]
 
-                    order_price = single["attributes"]["order_lines_price_amount"]
-                    currency = single["attributes"]["order_lines_price_currency"]
-                    first_name = single["attributes"]["shipping_address"]["first_name"]
-                    last_name = single["attributes"]["shipping_address"]["last_name"]
-                    address_line = single["attributes"]["shipping_address"]["address_line_1"]
-                    city = single["attributes"]["shipping_address"]["city"]
-                    zip_code = single["attributes"]["shipping_address"]["zip_code"]
-                    country_code = single["attributes"]["shipping_address"]["country_code"]
-                    status = single["attributes"]["status"]
-                    tracking = single["attributes"]["tracking_number"]
-                    return_tracking = single["attributes"]["return_tracking_number"]
-                    items_amount = single["attributes"]["order_lines_count"]
+                ord = ZalandoOrders(order_number, zalando_id, final_time, final_end_time, order_price, currency,
+                                    first_name, last_name, address_line, city, zip_code, country_code, status, tracking,
+                                    return_tracking, items_amount)  # add order
+                db.session.add(ord)
+                try:
+                    db.session.commit()
+                    print(
+                        f"{order_number} added to Zalando orders {final_time}")  # if the order has already been added, skip it. If not add
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"{order_number} skipped Zalando order {final_time}")
+                    # print(e)
 
-                    ord = ZalandoOrders(order_number, zalando_id, final_time, final_end_time, order_price, currency, first_name, last_name, address_line, city, zip_code, country_code, status, tracking, return_tracking, items_amount)  # add order
-                    db.session.add(ord)
-                    try:
-                        db.session.commit()
-                        print(
-                            f"{order_number} added to Zalando orders {final_time}")  # if the order has already been added, skip it. If not add
-                    except Exception as e:
-                        db.session.rollback()
-                        print(f"{order_number} skipped Zalando order {final_time}")
-                        # print(e)
-
-            print("************************************\n")
-            # save to file new date to import -2 hours (to be sure not to skip any lated order)
-            now = datetime.datetime.now() - timedelta(hours=2)
-            dt_string = now.strftime("%Y-%m-%d %H:%M:%S")
-            with open("zalando_last_order_import.txt", "w") as f:
-                f.write(dt_string)
-            time.sleep(delay)
+        print("************************************\n")
+        # save to file new date to import -2 hours (to be sure not to skip any lated order)
+        now = datetime.datetime.now() - timedelta(hours=2)
+        dt_string = now.strftime("%Y-%m-%d %H:%M:%S")
+        with open("zalando_last_order_import.txt", "w") as f:
+            f.write(dt_string)
+        time.sleep(delay)
 
 # function that starts the thread
 # workers.run_new_thread(name_of_worker, target function, params)

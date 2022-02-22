@@ -105,7 +105,7 @@ def miinto_stats(country="", month=""):
             # when users search for specific month
             return redirect(url_for('miinto_stats', country="all", month=month))
 
-        conn = sqlite3.connect("mrktplc_data.db")
+        conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
         c = conn.cursor()
         order_number = []  # stores sum of orders from all countries in list
         sum_of_orders = 0  # stores sum of orders from all countries summary
@@ -193,7 +193,7 @@ def miinto_stats(country="", month=""):
 
     if platform_name not in countries.keys():
         return render_template("miinto_stats.html", sum=0, labels=0, values=[0])
-    conn = sqlite3.connect("mrktplc_data.db")
+    conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
     c = conn.cursor()
 
     if month:
@@ -352,7 +352,7 @@ def orders_worker_miinto(delay):
 @app.route('/miinto/orders/<country>/<amount_on_site>/<offset>/<date_start>/<date_end>/', methods=['POST', 'GET'])
 @app.route('/miinto/orders/<country>/<amount_on_site>/<offset>/<date_start>/<date_end>/<order_number>', methods=['POST', 'GET'])
 def order_site_miinto(country="all", amount_on_site="500", offset="0", date_start="all", date_end="all", order_number=''):
-    conn = sqlite3.connect("mrktplc_data.db")
+    conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
     c = conn.cursor()
 
     if request.method == "POST":

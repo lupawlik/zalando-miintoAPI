@@ -62,6 +62,7 @@ class ZalandoCall(ZalandoRequest):
         params={
             'page[size]': 1000,
             'created_after': date,
+            'include': 'order_lines',
             }
 
         r = self.place_request("GET", "/merchants/{merchant_id}/orders", params)
@@ -81,6 +82,7 @@ class ZalandoCall(ZalandoRequest):
                 'page[size]': 1000,
                 'created_after': date,
                 'page[number]': next_site,
+                'include': 'order_lines',
             }
             r = self.place_request("GET", "/merchants/{merchant_id}/orders", params)
             list_of_all_orders.append(r)
