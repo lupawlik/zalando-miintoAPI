@@ -244,7 +244,8 @@ class ZalandoCall(ZalandoRequest):
             for i in range(len(orders_data['included'])):
                 item_lines_ids.append(orders_data['included'][i]['attributes']['order_line_id'])
                 item_ids.append(orders_data['included'][i]['attributes']['order_item_id'])
-                
+                price = orders_data['included'][i]['attributes']['price']['amount']
+
                 url = "/merchants/{merchant_id}"+f"/orders/{order_id}/items/{item_ids[i]}"
                 item_data = self.place_request("GET", url)
 
@@ -254,12 +255,10 @@ class ZalandoCall(ZalandoRequest):
 
                 try:
                     # price in order and eans in order
-                    price = item_ean['data']['psr']['product_models']['items'][0]['product_configs'][0]['product_simples'][0]['offers'][0]['price']['regular_price']['amount']
                     item_ean = item_ean['data']['psr']['product_models']['items'][0]['product_configs'][0]['product_simples'][0]['ean']
                 
                 except:  # when get_ean request failure
                     item_ean = "Nie mozna wczytac eanu"
-                    price = "0"
 
                 # add record to list of order
                 order_details['orders'].append(

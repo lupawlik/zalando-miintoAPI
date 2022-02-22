@@ -165,10 +165,9 @@ def return_site():
                     #  from all loaded data in "search" button, get only product checked in "product input"
                     one_final_product = session['products_data']['orders'][int(product_input[i])-1][product_input[i]]["order_details"]
                     one_final_product_id = session['products_data']['orders'][int(product_input[i])-1][product_input[i]]["id_details"]
-
                     # change status, save data to commit to db
                     action_info = zalandoApi.update_status_to_returned(one_final_product_id, return_reason)
-                    print(one_final_product)
+                    print(action_info)
                     eans += one_final_product["ean"] + ' '
                     price += float(one_final_product["price"])
 
@@ -181,6 +180,18 @@ def return_site():
                     db.session.commit()
                 except:
                     print("Nie dodano nowego rekordu. Prawdopodobnie wpis juz istniej")
+
+                # update order data in db
+                try:
+                    conn = sqlite3.connect("mrktplc_data.db")
+                    c = conn.cursor()
+                    query = f"UPDATE zalando_orders SET returned_price = '{str(price)}', items_returned_amount = '{len(eans.split(' '))-1}' WHERE order_number = '{order_id}'"
+                    print(query)
+                    c.execute(query)
+                    conn.commit()
+                    conn.close()
+                except:
+                    print("Nie dodano danych zwrotnych do zamowienai")
 
             return render_template('returns.html', action_info=action_info) # action_info = shows info about request status
 
