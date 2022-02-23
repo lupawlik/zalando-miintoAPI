@@ -185,11 +185,14 @@ def return_site():
                 try:
                     conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
                     c = conn.cursor()
-                    query = f"UPDATE zalando_orders SET returned_price = '{str(price)}', items_returned_amount = '{len(eans.split(' '))-1}' WHERE order_number = '{order_id}'"
-                    print(query)
+                    if eans == 'brak danych' or "Nie mozna wczytac eanu" in eans or not eans:
+                        query = f"UPDATE zalando_orders SET returned_price = '{str(price)}', items_returned_amount = null WHERE order_number = '{order_n}'"
+                    else:
+                        query = f"UPDATE zalando_orders SET returned_price = '{price}', items_returned_amount = {len(eans.split(' '))-1} WHERE order_number = '{order_n}'"
                     c.execute(query)
                     conn.commit()
                     conn.close()
+
                 except:
                     print("Nie dodano danych zwrotnych do zamowienai")
 
@@ -474,3 +477,5 @@ if __name__ == '__main__':
     thread_controll = threading.Thread(target=thread_starter)
     thread_controll.deamon = True
     thread_controll.start()
+
+

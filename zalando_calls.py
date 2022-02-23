@@ -77,7 +77,7 @@ class ZalandoCall(ZalandoRequest):
             print(f"Wczytano: {next_site*1000} ofert")
 
         while is_next_site:
-            time.sleep(30)
+            time.sleep(1)
             params = {
                 'page[size]': 1000,
                 'created_after': date,
