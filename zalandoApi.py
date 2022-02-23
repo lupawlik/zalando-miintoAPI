@@ -19,6 +19,7 @@ db = SQLAlchemy(app)
 
 from data_base_objects import Returns_db, Orders_db, ZalandoOrders
 import miinto.miintoApi as miintoApi
+import zalando_statistics
 
 
 # example function to test @app.route("/run_test_thread/")
@@ -45,22 +46,10 @@ def kill_worker(name=None):
                     'Podaj nazwe w linku np': 'http://127.0.0.1:5000/kill_worker/nazwa'})
 
 
-# main page of app, shows number of orders, returns and names of running workers
+# main page of app, shows number of orders, returns and names of running workers redirect to zalando statistics
 @app.route('/')
 def index():
-    conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
-    today = datetime.date.today()
-    today_first = str(today) + " 00:00:00.00"
-    today_end = str(today) + " 23:59:59.99"
-
-    # get number of orders and returns from zalando, print in html
-    db_df = pd.read_sql_query(f"SELECT COUNT(id) FROM returns_db WHERE date(date) BETWEEN date('{today_first}') AND date('{today_end}')", conn)
-    returns_number = str(db_df['COUNT(id)'][0])
-
-    db_df = pd.read_sql_query(f"SELECT COUNT(id) FROM zalando_orders WHERE date(date) BETWEEN date('{today_first}') AND date('{today_end}')", conn)
-    orders_number = str(db_df['COUNT(id)'][0])
-
-    return render_template('index.html', workers=workers.get_list_of_threads(), returns_number=returns_number, orders_number=orders_number)
+    return redirect(url_for("zalando_stats_page"))
 
 # route shows zalando orders by api
 # site = page number, count = number of orders on page, date = order of showing orders, ord_number = order number (takes number or "all" value)
