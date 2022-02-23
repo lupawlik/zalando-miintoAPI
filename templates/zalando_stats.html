@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <title>Statystki Zalando</title>
+</head>
+<body>
+     <div class="navbar">
+         <a href="/" class="previous"><b>ZALANDO</b></a>
+         <a href="/orders/" class="previous">Zamowienia</a>
+         <a href="/returns/" class="previous">Wyswietl produtky / zwroty</a>
+         <a href="/products/" class="previous">Podglad ofert po ean</a>
+         <a href="/tracking/" class="previous">Dodaj trackingi / statusy</a>
+    </div>
+           <h3>Uruchomione workery:
+            {%for worker in workers%}
+                {% if worker == "Brak" %}
+                    <p style = "color: red">{{worker}}</p>
+                {% else %}
+                    <p style = "color: green">{{worker}}</p>
+                {% endif %}
+            {%endfor%}
+               </h3>
+               Rok: {{year}}
+    <button><a href="{{ url_for('zalando_stats_page', year=(year|int)-1, month='1', country=country) }}">Poprzedni rok</a></button>
+    <button><a href="{{ url_for('zalando_stats_page', year=(year|int)+1, month='1', country=country) }}">Następny rok</a></button><br>
+
+    Miesiąc: {{month}}
+    <button><a href="{{ url_for('zalando_stats_page', year=year, month=month|int-1, country=country) }}">Poprzedni miesiac</a></button>
+    <button><a href="{{ url_for('zalando_stats_page', year=year, month=month|int+1, country=country) }}">Następny miesiac</a></button><br>
+
+    <p>Zamówień w tym miesiącu: {{orders|length}}</p>
+    <p>Zwrotów w tym miesiącu: {{returns|length}}</p>
+
+    <canvas id="myChart" width="780" height="520" style = "float: left;"></canvas>
+    <script>
+            var ctx = document.getElementById('myChart').getContext('2d');
+            var lineChart = new Chart(ctx, {
+                type: "bar",
+                data:{
+                    labels: {{days_labels|safe}},
+                    datasets: [
+                        {
+                            label: "Liczba zamówień",
+                            data: {{order_per_day|safe}},
+                            fill: false,
+                            backgroundColor: [
+                                  "rgb(0, 255, 127)",
+                                ],
+                            lineTension: 0.1,
+
+                        },
+                        {
+                            label: "Liczba Zwrotów",
+                            data: {{return_per_day|safe}},
+                            fill: false,
+                            backgroundColor: [
+                                  "rgb(178, 34, 34)",
+                                ],
+                            lineTension: 0.1,
+
+                        }
+                    ]
+                },
+                options: {
+                    responsive: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Liczba zamówień / zwrotów',
+                            padding: {
+                                top: 10,
+                                bottom: 30
+                            },
+                             font: {
+                                size: 30
+                            }
+                        },
+                    },
+                }
+            });
+    </script>
+</body>
+</html>
