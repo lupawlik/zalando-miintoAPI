@@ -340,6 +340,7 @@ def orders_worker_miinto(delay):
                    else:
                        order_list = MiintoApi().get_order_list(country_id, "accepted", str(i*50), "50")
                    trigger = get_data_from_product_list(order_list, date_to_import)
+            time.sleep(10)
 
         now = datetime.now() - timedelta(hours=1)
         dt_string = now.strftime("%Y-%m-%d %H:%M:%S")
