@@ -152,11 +152,11 @@ def return_site():
                 price = 0
                 for i in range(len(product_input)):  # go for all checked products
                     #  from all loaded data in "search" button, get only product checked in "product input"
+                    print(i)
                     one_final_product = session['products_data']['orders'][int(product_input[i])-1][product_input[i]]["order_details"]
                     one_final_product_id = session['products_data']['orders'][int(product_input[i])-1][product_input[i]]["id_details"]
                     # change status, save data to commit to db
                     action_info = zalandoApi.update_status_to_returned(one_final_product_id, return_reason)
-                    print(action_info)
                     eans += one_final_product["ean"] + ' '
                     price += float(one_final_product["price"])
 
@@ -175,9 +175,9 @@ def return_site():
                     conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
                     c = conn.cursor()
                     if eans == 'brak danych' or "Nie mozna wczytac eanu" in eans or not eans:
-                        query = f"UPDATE zalando_orders SET returned_price = '{str(price)}', items_returned_amount = null WHERE order_number = '{order_n}'"
+                        query = f"UPDATE zalando_orders SET returned_price = '{str(price)}', items_returned_amount = null WHERE order_number = '{order_id}'"
                     else:
-                        query = f"UPDATE zalando_orders SET returned_price = '{price}', items_returned_amount = {len(eans.split(' '))-1} WHERE order_number = '{order_n}'"
+                        query = f"UPDATE zalando_orders SET returned_price = '{price}', items_returned_amount = {len(eans.split(' '))-1} WHERE order_number = '{order_id}'"
                     c.execute(query)
                     conn.commit()
                     conn.close()
