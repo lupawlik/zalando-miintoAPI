@@ -324,10 +324,15 @@ def orders_worker_miinto(delay):
         for co in countries:
             country_id = countries[co]
             order_list = MiintoApi().get_order_list(country_id, "accepted", "0", "0")
+            # check if token is expired - gen new. If new token is no working skip this country
+
             if order_list['meta']['status'] == "failure": #jezeli token wygasnie generuje jeszcze raz
                 print("Problem z requestem na miinto. Generowanie nowego tokenu...")
                 create_mcc()
                 order_list = MiintoApi().get_order_list(country_id, "accepted", "0", "0")
+                if order_list['meta']['status'] == "failure":
+                    print(f"Problem z pobraniem danych z {countries[co]}")
+                    continue
             add_to_offset = int(int(order_list['meta']['totalItemCount'])/50)+1
 
             trigger = False
@@ -340,7 +345,6 @@ def orders_worker_miinto(delay):
                    else:
                        order_list = MiintoApi().get_order_list(country_id, "accepted", str(i*50), "50")
                    trigger = get_data_from_product_list(order_list, date_to_import)
-            time.sleep(10)
 
         now = datetime.now() - timedelta(hours=1)
         dt_string = now.strftime("%Y-%m-%d %H:%M:%S")
