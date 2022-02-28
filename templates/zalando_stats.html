@@ -82,5 +82,53 @@
                 }
             });
     </script>
+    <canvas id="myChart2" width="780" height="520" style = "float: left;"></canvas>
+    <script>
+            var ctx = document.getElementById('myChart2').getContext('2d');
+            var lineChart = new Chart(ctx, {
+                type: "bar",
+                data:{
+                    labels: {{days_labels|safe}},
+                    datasets: [
+                        {
+                            label: "Zamówienia (EURO) ",
+                            data: {{price_sum_per_day|safe}},
+                            fill: false,
+                            backgroundColor: [
+                                  "rgb(0, 255, 127)",
+                                ],
+                            lineTension: 0.1,
+
+                        },
+                        {
+                            label: "Zwroty (EURO) ",
+                            data: {{returns_price_sum_per_day|safe}},
+                            fill: false,
+                            backgroundColor: [
+                                  "rgb(178, 34, 34)",
+                                ],
+                            lineTension: 0.1,
+
+                        },
+                    ]
+                },
+                options: {
+                    responsive: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Kwoty zamówień / zwrotów - brutto',
+                            padding: {
+                                top: 10,
+                                bottom: 30
+                            },
+                             font: {
+                                size: 30
+                            }
+                        },
+                    },
+                }
+            });
+    </script>
 </body>
 </html>

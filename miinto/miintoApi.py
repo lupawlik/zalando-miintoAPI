@@ -1,6 +1,6 @@
 import json, requests, time, os, sqlite3, yaml
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from calendar import monthrange
 from collections import Counter
 from miinto.miinto_requests import create_mcc, MiintoRequest
@@ -86,184 +86,149 @@ class MiintoApi(MiintoRequest):
 @app.route("/miinto/", methods=['POST', 'GET'])
 @app.route("/miinto/stats/", methods=['POST', 'GET'])
 @app.route("/miinto/stats/<country>/", methods=['POST', 'GET'])
-@app.route("/miinto/stats/<country>/<month>", methods=['POST', 'GET'])
-def miinto_stats(country="", month=""):
+@app.route("/miinto/stats/<country>/<year>/", methods=['POST', 'GET'])
+@app.route("/miinto/stats/<country>/<year>/<month>/", methods=['POST', 'GET'])
+def miinto_stats(country=None, year=None, month=None):
     # loads all available countries
     countries = load_countries()
-    labels = [co for co in countries]
+    labels_counties_names = [co for co in countries]
+    print(labels_counties_names)
+    # if year and month are not declared, get current year/month
+    if not year:
+        todays_date = date.today()
+        year = todays_date.year
+        # if county not declared load data's from db for all of time
+        if not country:
+            country = 'all'
+        return redirect(url_for("miinto_stats", country=country, year=year, month=None))
 
-    # if user is not searching stats from specific country = search from all countries
-    # get dates, orders for each country and prices for each orders
-    if not country or country == "all":
-        # when users uses form to filter orders
-        if request.method == "POST":
-            req = request.form
-            month = req.get('month')
-            all_months = req.get('all')
-            if all_months: # when user want to show all months
-                return redirect(url_for('miinto_stats', country="all"))
-            # when users search for specific month
-            return redirect(url_for('miinto_stats', country="all", month=month))
-
+    # when is year specified but month not
+    # shows monthly statistics
+    if year and not month:
         conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
         c = conn.cursor()
-        order_number = []  # stores sum of orders from all countries in list
-        sum_of_orders = 0  # stores sum of orders from all countries summary
-
-        # go for every available country
-        for co in countries:
-            # get number of order by month or from all of time
-            if not month:
-                query = f"SELECT COUNT(*) FROM miinto_orders_db WHERE country = \"{co}\""
-            else:
-                year, month_q = month.split("-")
-                query = f"SELECT COUNT(*) FROM miinto_orders_db WHERE country = \"{co}\" AND strftime('%m', date) = '{month_q}' AND strftime('%Y', date) = '{year}'"
-
-            c.execute(query)
-            temp_data = c.fetchall()
-            order_number.append(temp_data[0][0])
-            sum_of_orders += int(temp_data[0][0])
-
-        # when user provide date in form
-        # select from db with date
-        if month:
-            year, month = month.split("-")
-            query = f"SELECT * FROM miinto_orders_db WHERE strftime('%m', date) = '{month}' AND strftime('%Y', date) = '{year}' ORDER BY date DESC"
-        # else select all
-        elif not month:
-            query = f"SELECT * FROM miinto_orders_db ORDER BY date DESC"
+        # get all monts with current year
+        time_labels = [f"{year}-0{x}" if x < 10 else f"{year}-{x}" for x in range(1, 13)]
+        print(time_labels)
+        if not country or country == "all":
+            query = f"SELECT * FROM miinto_orders_db WHERE strftime('%Y', date) = '{year}'"
+        else:
+            query = f"SELECT * FROM miinto_orders_db WHERE country = \"{country}\" AND strftime('%Y', date) = '{year}'"
 
         c.execute(query)
-        rows = list(c.fetchall())
+        orders_list = list(c.fetchall())
+        currency_symbol = None
+        order_number_per_month = []
+        summary_prices_per_month_pln = []
+        summary_prices_per_month_currency = []
+        for single_month in time_labels:
+            # get order number per single month
+            o_n = [order for order in orders_list if single_month in order[2]]
+            order_number_per_month.append(len(o_n))
 
-        # counts a price of orders for each day and each country
-        dates = []
-        date_with_price = []
-        pln_sum = 0
-        for row in rows:
-            single_date = row[2].split(" ")[0]
-            dates.append(single_date)
-            date_with_price.append((single_date, float(row[4])))
-            pln_sum += float(row[4])
+            # get sum of prices in orders for single_month
+            price_sum = sum([float(price[4]) for price in o_n])
+            summary_prices_per_month_pln.append(round(price_sum, 2))
 
-        t_1 = []
-        tab_price = []
-        cursor = -1
+            # when users is searching for specific country, get prices in these country currency and currency code
+            if country and country != "all":
+                price_sum = sum([float(price[3]) for price in o_n])
+                summary_prices_per_month_currency.append(round(price_sum, 2))
+                try:
+                    currency_symbol = orders_list[0][5]
+                except:
+                    currency_symbol = None
 
-        for single_price in date_with_price:
-            if single_price[0] not in t_1:
-                t_1.append(single_price[0])
-                tab_price.append(single_price[1])
-                cursor += 1
-            elif single_price[0] in t_1:
-                tab_price[cursor] += single_price[1]
+        # get number of orders per country if searching for all countries
+        number_of_orders_per_country = []
+        percent_domination = []
+        if country == "all" or not country:
+            for country_miinto in labels_counties_names:
+                o_n_per_country = [order for order in orders_list if country_miinto in order[6]]
+                number_of_orders_per_country.append(len(o_n_per_country))
+                try:
+                    percent_domination.append(round((len(o_n_per_country)/len(orders_list)*100),2))
+                except ZeroDivisionError:
+                    percent_domination.append(0)
 
-        for i in range(len(tab_price)):
-            tab_price[i] = round(tab_price[i], 2)
-        tab_price = tab_price[::-1]
-        #--------------------------------------
+        return render_template("miinto_stats.html", country=country, year=year, month=None, time_labels=time_labels, labels_counties_names=labels_counties_names, order_number_per_month=order_number_per_month,
+                                summary_prices_per_month_pln=summary_prices_per_month_pln, summary_prices_per_month_currency=summary_prices_per_month_currency, currency_symbol=currency_symbol,
+                                number_of_orders_per_country=number_of_orders_per_country, percent_domination=percent_domination)
 
-        date_dict = dict(Counter(dates))
-        if not date_dict:
-            return render_template("miinto_stats.html", sum=0, labels=0, values=0)
 
-        date_labels, values_o_number = zip(*date_dict.items())
-        date_labels = list(date_labels)[::-1]
+    # if from jinja2 is request to get current year
+    if month == "get_current_month":
+        todays_date = date.today()
+        month = todays_date.month
+        return redirect(url_for('miinto_stats', country=country, year=year, month=month))
 
-        values_o_number = list(values_o_number)[::-1]
+    # when year and month are specified
+    # add '0' if month < november
+    if len(month) < 2:
+        month = '0' + str(month)
+    # if month is january and client want prev month - change year and redirect. If is december an button is next change year
+    if int(month) == 0:
+        return redirect(url_for('miinto_stats', country=country, year=int(year)-1, month=12))
+    elif int(month) == 13:
+        return redirect(url_for('miinto_stats', country=country, year=int(year)+1, month=1))
 
-        avg_order_number = round(sum_of_orders/len(date_labels), 1)
-        percent_per_country = []
-        for i in order_number:
-            percent_per_country.append(str(round(int(i)/int(sum_of_orders), 4)*100))
-
-        return render_template("miinto_stats.html", sum=sum_of_orders, labels=labels, values=order_number, date_labels=date_labels, values_o_number=values_o_number, avg_order_number=avg_order_number, percent_per_country=percent_per_country, summary_prices_pln=tab_price, sum_in_pln=round(pln_sum, 2), month=month)
-
-    # THAT'S RUN ONLY FOR STATISTIC FROM SPECIFIC COUNTRY
-    if request.method == "POST":
-        req = request.form
-        month = req.get('month')
-        all_months = req.get('all')
-        if all_months:
-            return redirect(url_for('miinto_stats', country=country))
-
-        return redirect(url_for('miinto_stats', country=country, month=month))
-
-    platform_name = f"Platform-{country.upper()}"
-
-    if platform_name not in countries.keys():
-        return render_template("miinto_stats.html", sum=0, labels=0, values=[0])
+    # get labels to chart - label is list of all day in month ex ['01.01, 02.01, 03.01...]
+    days_in_month = monthrange(int(year), int(month))[1]
+    time_labels = [f"{str(month)}-0{str(x)}" if x < 10 else f"{str(month)}-{str(x)}" for x in range(1, days_in_month+1)]
     conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
     c = conn.cursor()
+    # get all months with current year
 
-    if month:
-        year, month = month.split("-")
-        query = f"SELECT * FROM miinto_orders_db WHERE country = \"{platform_name}\" AND strftime('%m', date) = '{month}' AND strftime('%Y', date) = '{year}' ORDER BY date DESC"
-        print(query)
-        num_days = monthrange(int(year), int(month))[1]  # num_days = 28
-
+    print(time_labels)
+    if not country or country == "all":
+        query = f"SELECT * FROM miinto_orders_db WHERE strftime('%Y', date) = '{year}'"
     else:
-        query = f"SELECT * FROM miinto_orders_db WHERE country = \"{platform_name}\"  ORDER BY date DESC"
-        print(query)
+        query = f"SELECT * FROM miinto_orders_db WHERE country = \"{country}\" AND strftime('%Y', date) = '{year}'"
+
     c.execute(query)
+    orders_list = list(c.fetchall())
+    currency_symbol = None
+    order_number_per_month = []
+    summary_prices_per_month_pln = []
+    summary_prices_per_month_currency = []
+    for single_month in time_labels:
+        # get order number per single month
+        o_n = [order for order in orders_list if single_month in order[2]]
+        order_number_per_month.append(len(o_n))
 
-    rows = list(c.fetchall())
-    dates = []
-    price_sum = 0
-    prices_sum_pln = 0
-    date_with_price = []
-    temp_price_date = ""
+        # get sum of prices in orders for single_month
+        price_sum = sum([float(price[4]) for price in o_n])
+        summary_prices_per_month_pln.append(round(price_sum, 2))
 
-    for row in rows:
-        single_date = row[2].split(" ")[0]
+        # when users is searching for specific country, get prices in these country currency and currency code
+        if country and country != "all":
+            price_sum = sum([float(price[3]) for price in o_n])
+            summary_prices_per_month_currency.append(round(price_sum, 2))
+            try:
+                currency_symbol = orders_list[0][5]
+            except:
+                currency_symbol = None
 
-        dates.append(single_date)
-        date_with_price.append((single_date, float(row[3]), float(row[4])))
-        price_sum += float(row[3])
-        prices_sum_pln += float(row[4])
+    # get number of orders per country if searching for all countries
+    number_of_orders_per_country = []
+    percent_domination = []
+    if country == "all" or not country:
+        for country_miinto in labels_counties_names:
+            o_n_per_country = [order for order in orders_list if country_miinto in order[6]]
+            number_of_orders_per_country.append(len(o_n_per_country))
+            try:
+                percent_domination.append(round((len(o_n_per_country) / len(orders_list) * 100), 2))
+            except ZeroDivisionError:
+                percent_domination.append(0)
 
-    t_1 = []
-    tab_price = []
-    prices_in_pln = []
-    cursor = -1
-    # add days with 0 orders to table_with prices
+    return render_template("miinto_stats.html", country=country, year=year, month=month, time_labels=time_labels,
+                           labels_counties_names=labels_counties_names, order_number_per_month=order_number_per_month,
+                           summary_prices_per_month_pln=summary_prices_per_month_pln,
+                           summary_prices_per_month_currency=summary_prices_per_month_currency,
+                           currency_symbol=currency_symbol,
+                           number_of_orders_per_country=number_of_orders_per_country,
+                           percent_domination=percent_domination)
 
-    for single_price in date_with_price:
-        if single_price[0] not in t_1:
-            t_1.append(single_price[0])
-            tab_price.append(single_price[1])
-            prices_in_pln.append(single_price[2])
-            cursor += 1
-        elif single_price[0] in t_1:
-            tab_price[cursor] += single_price[1]
-            prices_in_pln[cursor] += single_price[2]
-
-    for i in range(len(tab_price)):
-        tab_price[i] = round(tab_price[i], 2)
-    tab_price = tab_price[::-1]
-    prices_in_pln = prices_in_pln[::-1]
-
-    date_dict = dict(Counter(dates))
-    if not date_dict:
-        return render_template("miinto_stats_details.html", price=1, order_number=1, course=1)
-
-    date_labels, values_o_number = zip(*date_dict.items())
-
-    values_o_number = list(values_o_number)[::-1]
-    date_labels = list(date_labels)[::-1]
-
-    currency = rows[0][5]
-
-    if month:
-        query = f"SELECT COUNT(*) FROM miinto_orders_db WHERE country = \"{platform_name}\" AND strftime('%m', date) = '{month}' AND strftime('%Y', date) = '{year}'"
-    else:
-        query = f"SELECT COUNT(*) FROM miinto_orders_db WHERE country = \"{platform_name}\""
-    c.execute(query)
-
-    sum = c.fetchall()
-    course = coursers[currency]
-
-    return render_template("miinto_stats_details.html", order_number=int(sum[0][0]), price = price_sum, prices_sum_pln=round(prices_sum_pln, 2), currency=currency, course=course, date_labels=date_labels, values_o_number=values_o_number, price_date_values=tab_price, country=country, all_country_list=labels, prices_in_pln=prices_in_pln)
 
 # worker update db with new orders
 def orders_worker_miinto(delay):

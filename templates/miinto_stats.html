@@ -14,54 +14,69 @@
             </button>
             <div class="dropdown-content">
                 <a class="previous" href ="/miinto/stats/">Wszystkie rynki</a>
-                <a class="previous" href ="/miinto/stats/be">Belgia</a>
-                <a class="previous" href ="/miinto/stats/dk">Dania</a>
-                <a class="previous" href ="/miinto/stats/fi">Finlandia</a>
-                <a class="previous" href ="/miinto/stats/fr">Francja</a>
-                <a class="previous" href ="/miinto/stats/es">Hiszpania</a>
-                <a class="previous" href ="/miinto/stats/nl">Holandia</a>
-                <a class="previous" href ="/miinto/stats/de">Niemcy</a>
-                <a class="previous" href ="/miinto/stats/pl">Polska</a>
-                <a class="previous" href ="/miinto/stats/se">Szwecja</a>
-                <a class="previous" href ="/miinto/stats/it">Wlochy</a>
+                <a class="previous" href ="/miinto/stats/Platform-BE">Belgia</a>
+                <a class="previous" href ="/miinto/stats/Platform-DK">Dania</a>
+                <a class="previous" href ="/miinto/stats/Platform-FI">Finlandia</a>
+                <a class="previous" href ="/miinto/stats/Platform-FR">Francja</a>
+                <a class="previous" href ="/miinto/stats/Platform-ES">Hiszpania</a>
+                <a class="previous" href ="/miinto/stats/Platform-NL">Holandia</a>
+                <a class="previous" href ="/miinto/stats/Platform-DE">Niemcy</a>
+                <a class="previous" href ="/miinto/stats/Platform-PL">Polska</a>
+                <a class="previous" href ="/miinto/stats/Platform-SE">Szwecja</a>
+                <a class="previous" href ="/miinto/stats/Platform-IT">Wlochy</a>
             </div>
         </div>
     </div>
-    <h1 style="text-align: center;">Wszystkie rynki miinto - okres: {{month}}</h1>
-    <form action="{{ url_for('miinto_stats', country='all') }}" method="post">
-        <input type="month" id="month" name="month" min="2021-12" value="2021-12">
-        <input type="submit"></br>
-        Wyswietl wszysto <input type="checkbox" id="all" name="all">
-    </form>
+    <center>
+        <h1>
+            {% if country == 'all' or country == None%}
+                Kraj: Wszyskie rynki<br>
+            {% elif country != 'all' %}
+                Kraj: {{country}}<br>
+            {% endif %}
+            {% if month != None %}
+                Rok: {{year}} Miesiąc: {{month}}
+            {% elif month == None %}
+                Rok: {{year}}
+            {% endif %}
+        </h1>
+    </center>
+
+
+    <center><button><a href="{{ url_for('miinto_stats', country=country) }}">Zestawienie roczne</a></button><button><a href="{{ url_for('miinto_stats', year=year, month='get_current_month', country=country) }}">Zestawienie miesięczne</a></button><br></center>
+
+
+    {% if month != None %}
+        <center>
+            <button><a href="{{ url_for('miinto_stats', year=(year|int)-1, month='1', country=country) }}">Poprzedni rok</a></button>
+            <button><a href="{{ url_for('miinto_stats', year=(year|int)+1, month='1', country=country) }}">Następny rok</a></button><br>
+        </center>
+        <center>
+            <button><a href="{{ url_for('miinto_stats', year=year, month=month|int-1, country=country) }}">Poprzedni miesiac</a></button>
+            <button><a href="{{ url_for('miinto_stats', year=year, month=month|int+1, country=country) }}">Następny miesiac</a></button>
+        </center>><br>
+    {% else %}
+        <center>
+            <button><a href="{{ url_for('miinto_stats', year=(year|int)-1, country=country) }}">Poprzedni rok</a></button>
+            <button><a href="{{ url_for('miinto_stats', year=(year|int)+1, country=country) }}">Następny rok</a></button><br>
+        </center>
+    {% endif %}
+
     <canvas id="myChart" width="780" height="520" style = "float: left;"></canvas>
-    <canvas id="myChart2" width="780" height="520" style = "float: left;"></canvas>
-    <canvas id="myChart3" width="780" height="520" style = "float: left;"></canvas>
-    <canvas id="myChart4" width="780" height="520" style = "float: left;"></canvas>
     <script>
-        var ctx = document.getElementById('myChart').getContext('2d');
-        var lineChart = new Chart(ctx, {
-            type: "bar",
+        var ctx1 = document.getElementById('myChart').getContext('2d');
+        var lineChart = new Chart(ctx1, {
+            type: "line",
             data:{
-                labels: {{labels|safe}},
+                labels: {{time_labels|safe}},
                 datasets: [
                     {
                         label: "Liczba zamowien",
-                        data: {{values|safe}},
+                        data: {{order_number_per_month|safe}},
                         fill: false,
-                        backgroundColor: [
-                              "rgb(162, 223, 233)",
-                              'rgb(255, 99, 132)',
-                              'rgb(54, 162, 235)',
-                              'rgb(255, 205, 86)',
-                              'rgb(136, 176, 75)',
-                              'rgb(247, 202, 201)',
-                              'rgb(146, 168, 209)',
-                              'rgb(0, 155, 119)',
-                              'rgb(91, 94, 166)',
-                              'rgb(223, 207, 190)',
-                              'rgb(195, 68, 122)',
-                            ],
+                        borderColor: "rgb(75, 192, 192)",
                         lineTension: 0.1,
+
                     }
                 ]
             },
@@ -70,7 +85,7 @@
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Ilosc zamowien - {{sum}}',
+                        text: 'Ilosc zamowien - miesiecznie',
                         padding: {
                             top: 10,
                             bottom: 30
@@ -78,26 +93,37 @@
                          font: {
                             size: 30
                         }
-                    },
+                    }
                 },
             }
         });
     </script>
+    <canvas id="myChart2" width="780" height="520" style = "float: left;"></canvas>
     <script>
         var ctx2 = document.getElementById('myChart2').getContext('2d');
         var lineChart = new Chart(ctx2, {
             type: "line",
             data:{
-                labels: {{date_labels|safe}},
+                labels: {{time_labels|safe}},
                 datasets: [
                     {
-                        label: "Liczba zamowien",
-                        data: {{values_o_number|safe}},
+                        label: "Kwoty zamowien w PLN",
+                        data: {{summary_prices_per_month_pln|safe}},
                         fill: false,
-                        borderColor: "rgb(75, 192, 192)",
+                        borderColor: "rgb(228, 217, 111)",
                         lineTension: 0.1,
-                        
+
+                    },
+                    {% if summary_prices_per_month_currency != [] %}
+                    {
+                        label: "Kwota zamowien {{currency_symbol}}",
+                        data: {{summary_prices_per_month_currency|safe}},
+                        fill: false,
+                        borderColor: "rgb(100, 217, 111)",
+                        lineTension: 0.1,
+                        pointRadius: 5,
                     }
+                    {% endif %}
                 ]
             },
             options: {
@@ -105,7 +131,7 @@
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Ilosc zamowien dziennie (srednio {{avg_order_number}})',
+                        text: 'Kwoty zamowien',
                         padding: {
                             top: 10,
                             bottom: 30
@@ -118,85 +144,105 @@
             }
         });
     </script>
-    <script>
-        var ctx3 = document.getElementById('myChart3').getContext('2d');
-        var lineChart = new Chart(ctx3, {
-            type: "doughnut",
-            data:{
-                labels: {{labels|safe}},
-                datasets: [
-                    {
-                        label: "Liczba zamowien",
-                        data: {{percent_per_country|safe}},
-                        fill: false,
-                        backgroundColor: [
-                              "rgb(162, 223, 233)",
-                              'rgb(255, 99, 132)',
-                              'rgb(54, 162, 235)',
-                              'rgb(255, 205, 86)',
-                              'rgb(136, 176, 75)',
-                              'rgb(247, 202, 201)',
-                              'rgb(146, 168, 209)',
-                              'rgb(0, 155, 119)',
-                              'rgb(91, 94, 166)',
-                              'rgb(223, 207, 190)',
-                              'rgb(195, 68, 122)',
-                            ],
-                        lineTension: 0.1,
-                    }
-                ]
-            },
-            options: {
-                responsive: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Dominacja rynkow w % (ilosc zamowien)',
-                        padding: {
-                            top: 10,
-                            bottom: 30
+    {% if number_of_orders_per_country != [] %}
+        {% set summary_number_of_orders_per_country = number_of_orders_per_country|sum %}
+        <canvas id="myChart3" width="780" height="520" style = "float: left;"></canvas>
+        <script>
+            var ctx3 = document.getElementById('myChart3').getContext('2d');
+            var lineChart = new Chart(ctx3, {
+                type: "bar",
+                data:{
+                    labels: {{labels_counties_names|safe}},
+                    datasets: [
+                        {
+                            label: "Liczba zamowien",
+                            data: {{number_of_orders_per_country|safe}},
+                            fill: false,
+                            backgroundColor: [
+                                  "rgb(162, 223, 233)",
+                                  "rgb(222, 223, 233)",
+                                  'rgb(255, 99, 132)',
+                                  'rgb(54, 162, 235)',
+                                  'rgb(255, 205, 86)',
+                                  'rgb(136, 176, 75)',
+                                  'rgb(247, 202, 201)',
+                                  'rgb(146, 168, 209)',
+                                  'rgb(0, 155, 119)',
+                                  'rgb(91, 94, 166)',
+                                  'rgb(223, 207, 190)',
+                                  'rgb(195, 68, 122)',
+                                ],
+                            lineTension: 0.1,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Ilosc zamowien - {{summary_number_of_orders_per_country}}',
+                            padding: {
+                                top: 10,
+                                bottom: 30
+                            },
+                             font: {
+                                size: 30
+                            }
                         },
-                         font: {
-                            size: 30
+                    },
+                }
+            });
+        </script>
+        <canvas id="myChart4" width="780" height="520" style = "float: left;"></canvas>
+            <script>
+
+                var ctx4 = document.getElementById('myChart4').getContext('2d');
+                var lineChart = new Chart(ctx4, {
+                    type: "doughnut",
+                    data:{
+                        labels: {{labels_counties_names|safe}},
+                        datasets: [
+                            {
+                                label: "Liczba zamowien",
+                                data: {{percent_domination|safe}},
+                                fill: false,
+                                backgroundColor: [
+                                      "rgb(162, 223, 233)",
+                                      "rgb(222, 223, 233)",
+                                      'rgb(255, 99, 132)',
+                                      'rgb(54, 162, 235)',
+                                      'rgb(255, 205, 86)',
+                                      'rgb(136, 176, 75)',
+                                      'rgb(247, 202, 201)',
+                                      'rgb(146, 168, 209)',
+                                      'rgb(0, 155, 119)',
+                                      'rgb(91, 94, 166)',
+                                      'rgb(223, 207, 190)',
+                                      'rgb(195, 68, 122)',
+                                    ],
+                                lineTension: 0.1,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Dominacja rynkow w % (ilosc zamowien)',
+                                padding: {
+                                    top: 10,
+                                    bottom: 30
+                                },
+                                 font: {
+                                    size: 30
+                                }
+                            }
                         }
                     }
-                }
-            }
-        });
-    </script>
-    <script>
-        var ctx4 = document.getElementById('myChart4').getContext('2d');
-        var lineChart = new Chart(ctx4, {
-            type: "line",
-            data:{
-                labels: {{date_labels|safe}},
-                datasets: [
-                    {
-                        label: "Kwoty zamowien PLN",
-                        data: {{summary_prices_pln|safe}},
-                        fill: false,
-                        borderColor: "rgb(228, 217, 111)",
-                        lineTension: 0.1,
-                    }
-                ]
-            },
-            options: {
-                responsive: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Kwoty zamowien w PLN {{sum_in_pln}}',
-                        padding: {
-                            top: 10,
-                            bottom: 30
-                        },
-                         font: {
-                            size: 30
-                        }
-                    }
-                }
-            }
-        });
-    </script>
+                });
+        </script>
+    {% endif %}
 </body>
 </html>
