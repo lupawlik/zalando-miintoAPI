@@ -214,7 +214,7 @@ def miinto_stats(country=None, year=None, month=None):
     percent_domination = []
     if country == "all" or not country:
         for country_miinto in labels_counties_names:
-            o_n_per_country = [order for order in orders_list if country_miinto in order[6]]
+            o_n_per_country = [order for order in orders_list if country_miinto in order[6] and f"{year}-{month}" in order[2]]
             number_of_orders_per_country.append(len(o_n_per_country))
             try:
                 percent_domination.append(round((len(o_n_per_country) / len(orders_list) * 100), 2))
