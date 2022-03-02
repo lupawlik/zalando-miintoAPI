@@ -45,7 +45,6 @@ def kill_worker(name=None):
     return jsonify({'Workery mozliwe do zatrzymania': workers.get_list_of_threads(),
                     'Podaj nazwe w linku np': 'http://127.0.0.1:5000/kill_worker/nazwa'})
 
-
 # main page of app, shows number of orders, returns and names of running workers redirect to zalando statistics
 @app.route('/')
 def index():
@@ -127,7 +126,6 @@ def order_site_approved():
     # loads when route visited, without post request
     orders_data = zalandoApi.get_approved_orders()
     return render_template('orders_approved.html', orders=orders_data)
-
 
 @app.route("/returns/", methods=['POST', 'GET'])
 def return_site():
@@ -319,6 +317,8 @@ def tracking_site():
             # add new data to db
             conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
             c = conn.cursor()
+            if session['status'] == 'shipped':
+                session['status'] = 'fulfilled'
             query = f"UPDATE zalando_orders SET status = '{session['status']}', tracking_number = '{session['tracking']}', return_tracking_number = '{session['return_tracking']}' WHERE order_number = '{session['order_nr']}'"
             c.execute(query)
             conn.commit()

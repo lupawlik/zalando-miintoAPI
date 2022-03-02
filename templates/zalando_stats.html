@@ -5,6 +5,33 @@
      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
      <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     <title>Statystki Zalando</title>
+    <style>
+        .info-bar:{
+            width: 100%;
+        }
+        .half-bar{
+            width: 50%;
+            float:left;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .segment{
+            float: left;
+            width: 33%;
+            box-shadow: inset 0px 0px 5px 0px #203647;
+        }
+        .info-titles, .info-content{
+            height: 40px;
+            float: left;
+            text-align: center;
+            width: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+    </style>
 </head>
 <body>
      <div class="navbar">
@@ -31,8 +58,46 @@
     <button><a href="{{ url_for('zalando_stats_page', year=year, month=month|int-1, country=country) }}">Poprzedni miesiac</a></button>
     <button><a href="{{ url_for('zalando_stats_page', year=year, month=month|int+1, country=country) }}">Następny miesiac</a></button><br>
 
-    <p>Zamówień w tym miesiącu: {{orders|length}}</p>
-    <p>Zwrotów w tym miesiącu: {{returns|length}}</p>
+     {% set sum_of_prices = (price_sum_per_day | sum) | round(2)%}
+     {% set sum_of_prices_returned = (returns_price_sum_per_day | sum) | round(2)%}
+     <div class="info-bar">
+         <div class="half-bar">
+             <div class="segment">
+                 <div class="info-titles">Zamówień w tym miesiącu</div>
+                 <div class="info-content">{{orders|length}}</div>
+             </div>
+             <div class="segment">
+                 <div class="info-titles">Suma kwot zamówień</div>
+                 <div class="info-content">{{sum_of_prices}}</div>
+             </div>
+             <div class="segment">
+                 <div class="info-titles">Średni koszyk</div>
+                 {% if sum_of_prices == 0 %}
+                    <div class="info-content">0</div>
+                 {% else %}
+                    <div class="info-content">{{(sum_of_prices/orders | length) | round(2)}}</div>
+                 {% endif %}
+             </div>
+         </div>
+         <div class="half-bar">
+             <div class="segment">
+                 <div class="info-titles">Zwrotów w tym miesiącu</div>
+                 <div class="info-content">{{returns|length}}</div>
+             </div>
+             <div class="segment">
+                 <div class="info-titles">Suma kwot zwrotów</div>
+                 <div class="info-content">{{sum_of_prices_returned}}</div>
+             </div>
+             <div class="segment">
+                 <div class="info-titles">Średni zwracany koszyk</div>
+                 {% if sum_of_prices_returned == 0 %}
+                    <div class="info-content">0</div>
+                 {% else %}
+                    <div class="info-content">{{(sum_of_prices_returned/returns | length) | round(2)}}</div>
+                 {% endif %}
+             </div>
+         </div>
+     </div>
 
     <canvas id="myChart" width="780" height="520" style = "float: left;"></canvas>
     <script>
