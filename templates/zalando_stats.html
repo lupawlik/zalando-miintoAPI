@@ -98,6 +98,33 @@
              </div>
          </div>
      </div>
+     <div class="info-bar">
+         <div class="half-bar">
+             <div class="segment">
+                 <div class="info-titles">Średnio zamówień dziennie</div>
+                 {% set days_wih_sales = namespace(value=1) %}
+                 {% for i in order_per_day%}
+                    {% if i != 0 %}
+                        {% set days_wih_sales.value = days_wih_sales.value + 1 %}
+                    {% endif %}
+                 {% endfor %}
+
+                 <div class="info-content">{{(orders|length/days_wih_sales.value)|round(1)}}</div>
+             </div>
+         </div>
+         <div class="half-bar">
+             <div class="segment">
+                 <div class="info-titles">Procent zwrotow</div>
+                     {% if orders|length == 0 %}
+                        <div class="info-content">0.0</div>
+                     {% else %}
+                        <div class="info-content">{{((returns|length/orders|length)*100)|round(2)}}</div>
+                     {% endif %}
+
+             </div>
+         </div>
+
+     </div>
 
     <canvas id="myChart" width="780" height="520" style = "float: left;"></canvas>
     <script>
