@@ -59,7 +59,7 @@ def zalando_stats_page(year=None, month=None, country='DE', orders_on_page=1000,
         return_price_sum = sum([float(returns[4]) for returns in r_n])
 
         # counts how many order from this day was returned
-        orders_returned = [is_returned for is_returned in orders if day in is_returned[17] and is_returned[16]]
+        orders_returned = [is_returned for is_returned in orders if day in is_returned[17] and is_returned[4]]
         orders_returned_each_day.append(len(orders_returned))
         price_sum_per_day.append(round(price_sum, 2))
         returns_price_sum_per_day.append(round(return_price_sum, 2))
