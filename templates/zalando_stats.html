@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
      <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    <title>Statystki Zalando</title>
+    <title>Statystyki Zalando</title>
     <style>
         .info-bar:{
             width: 100%;
@@ -117,7 +117,16 @@
          </div>
          <div class="half-bar">
              <div class="segment">
-                 <div class="info-titles">Procent zwrotow</div>
+                 <div class="info-titles">% zwrotów - realny</div>
+                     {% if orders|length == 0 %}
+                        <div class="info-content">0.0</div>
+                     {% else %}
+                        <div class="info-content">{{((orders_returned_each_day|sum/orders|length)*100)|round(2)}}</div>
+                     {% endif %}
+
+             </div>
+             <div class="segment">
+                 <div class="info-titles">% zwrotów - wykonanych w msc </div>
                      {% if orders|length == 0 %}
                         <div class="info-content">0.0</div>
                      {% else %}
