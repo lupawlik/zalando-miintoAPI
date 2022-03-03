@@ -131,8 +131,8 @@
 
     <canvas id="myChart" width="780" height="520" style = "float: left;"></canvas>
     <script>
-            var ctx = document.getElementById('myChart').getContext('2d');
-            var lineChart = new Chart(ctx, {
+            var ctx1 = document.getElementById('myChart').getContext('2d');
+            var lineChart = new Chart(ctx1, {
                 type: "bar",
                 data:{
                     labels: {{days_labels|safe}},
@@ -179,8 +179,8 @@
     </script>
     <canvas id="myChart2" width="780" height="520" style = "float: left;"></canvas>
     <script>
-            var ctx = document.getElementById('myChart2').getContext('2d');
-            var lineChart = new Chart(ctx, {
+            var ctx2 = document.getElementById('myChart2').getContext('2d');
+            var lineChart = new Chart(ctx2, {
                 type: "bar",
                 data:{
                     labels: {{days_labels|safe}},
@@ -222,6 +222,66 @@
                             }
                         },
                     },
+                }
+            });
+    </script>
+     <canvas id="myChart3" width="780" height="520" style = "float: left;"></canvas>
+
+    <script>
+            var ctx3 = document.getElementById('myChart3').getContext('2d');
+            var lineChart = new Chart(ctx3, {
+                data:{
+                    labels: {{days_labels|safe}},
+                    datasets: [
+                        {
+                            type: "line",
+                            label: "Stosunek zwrotów do zamówień w %",
+                            yAxisID: 'B',
+                            data: {{returns_to_order_ratio|safe}},
+                            borderColor: "rgb(255, 49, 49)"
+                        },
+                        {
+                            type: "bar",
+                            label: "Ilośc zwrotow",
+                            data: {{orders_returned_each_day|safe}},
+                            fill: false,
+                            backgroundColor: "rgb(145, 178, 199)",
+                            lineTension: 0.1,
+                            yAxisID: 'A',
+                        },
+                    ]
+                },
+                options: {
+                    responsive: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Zwroty dla poszczególnych dni',
+                            padding: {
+                                top: 10,
+                                bottom: 30
+                            },
+                             font: {
+                                size: 30
+                            }
+                        },
+                    },
+                    scales: {
+                        A: {
+                             name: 'A',
+                            type: 'linear',
+                            position: 'left',
+                            scalePositionLeft: true
+                        },
+                        B: {
+                            name: 'B',
+                            type: 'linear',
+                            position: 'right',
+                            scalePositionLeft: false,
+                            min: 0,
+                            max: 100
+                        },
+                    }
                 }
             });
     </script>

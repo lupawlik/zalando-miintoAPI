@@ -15,18 +15,6 @@ class Returns_db(db.Model):
         self.price = price
 
 # table with order on zalando
-class Orders_db(db.Model):
-    id = db.Column('id', db.Integer, primary_key = True) 
-    order_number = db.Column('order_number', db.String(30), nullable=False, unique=True)
-    data = db.Column('date', db.DateTime, nullable=False, default=datetime.utcnow)
-    price = db.Column('price', db.String(16))
-
-    def __init__(self, order_number, data, price):
-        self.order_number = order_number
-        self.data = data
-        self.price = price
-
-# table with order on zalando
 class ZalandoOrders(db.Model):
     id = db.Column('id', db.Integer, primary_key = True)
     order_number = db.Column('order_number', db.String(30), nullable=False, unique=True)

@@ -17,7 +17,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mrktplc_data.db'
 zalandoApi = ZalandoCall()
 db = SQLAlchemy(app)
 
-from data_base_objects import Returns_db, Orders_db, ZalandoOrders
+from data_base_objects import Returns_db, ZalandoOrders
 import miinto.miintoApi as miintoApi
 import zalando_statistics
 
@@ -187,7 +187,6 @@ def return_site():
 
         if button_data == "download_csv":  # run when user want to download report of returned items from db
             returns = Returns_db.query.all()
-            orders = Orders_db.query.all()
             session['date_start'] = f"{req.get('db_date_start')} 00:00:00.000000"
             session['date_end'] = f"{req.get('db_date_end')} 00:00:00.000000"
             if session['date_start'] == session['date_end']:  # if date same, get data from all day
