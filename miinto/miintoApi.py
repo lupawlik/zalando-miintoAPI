@@ -7,6 +7,7 @@ from miinto.miinto_requests import create_mcc, MiintoRequest
 from flask import request, redirect, url_for, render_template, session
 from __main__ import app, db
 
+
 # set main courses, used when course converter not working
 coursers = {"EUR": 0.22, "DKK": 1.63, "PLN": 1, "SEK": 2.29}
 

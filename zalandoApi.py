@@ -17,6 +17,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mrktplc_data.db'
 zalandoApi = ZalandoCall()
 db = SQLAlchemy(app)
 
+queue_query = []
 from data_base_objects import Returns_db, ZalandoOrders
 import miinto.miintoApi as miintoApi
 import zalando_statistics
@@ -160,28 +161,12 @@ def return_site():
 
                 # add order to db (order number, ean string, price(string))
                 order_id = one_final_product_id["order_number"]
-
-                ret = Returns_db(order_id, eans, str(price))
-                db.session.add(ret)
-                try:
-                    db.session.commit()
-                except:
-                    print("Nie dodano nowego rekordu. Prawdopodobnie wpis juz istniej")
-
-                # update order data in db
-                try:
-                    conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
-                    c = conn.cursor()
-                    if eans == 'brak danych' or "Nie mozna wczytac eanu" in eans or not eans:
-                        query = f"UPDATE zalando_orders SET returned_price = '{str(price)}', items_returned_amount = null WHERE order_number = '{order_id}'"
-                    else:
-                        query = f"UPDATE zalando_orders SET returned_price = '{price}', items_returned_amount = {len(eans.split(' '))-1} WHERE order_number = '{order_id}'"
-                    c.execute(query)
-                    conn.commit()
-                    conn.close()
-
-                except:
-                    print("Nie dodano danych zwrotnych do zamowienai")
+                now = datetime.datetime.utcnow()
+                queue_query.append(f"INSERT INTO returns_db(order_number, enas, date, price) VALUES('{order_id}', '{eans}', '{now}', '{str(price)}')")
+                if eans == 'brak danych' or "Nie mozna wczytac eanu" in eans or not eans:
+                    queue_query.append(f"UPDATE zalando_orders SET returned_price = '{str(price)}', items_returned_amount = null WHERE order_number = '{order_id}'")
+                else:
+                    queue_query.append(f"UPDATE zalando_orders SET returned_price = '{price}', items_returned_amount = {len(eans.split(' ')) - 1} WHERE order_number = '{order_id}'")
 
             return render_template('returns.html', action_info=action_info) # action_info = shows info about request status
 
@@ -266,8 +251,6 @@ def zalando_labels_worker(data_set, worker_name, mail):
     global done_tracking
     global tracking_to_import
     report = []
-    conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
-    c = conn.cursor()
     for i in data_set:
         print(f"Adding tracking {i[1]}, return tracking {i[2]} to order {i[0]}")
         if str(i[1]) == "nan" or str(i[2]) == "nan":
@@ -279,13 +262,12 @@ def zalando_labels_worker(data_set, worker_name, mail):
             report.append((i[0], r.status_code))
             # when success - update order in db
             query = f"UPDATE zalando_orders SET status = 'fulfilled', tracking_number = '{i[1]}', return_tracking_number = '{i[2]}' WHERE order_number = '{i[0]}'"
-            c.execute(query)
+            queue_query.append(query)
 
         except:
             report.append((i[0], "404"))
 
         done_tracking += 1
-    conn.commit()
     report_text = ""
     for i in report:
         if i[1] == 204 or i[1] == "204":
@@ -314,14 +296,11 @@ def tracking_site():
             zalandoApi.update_tracking(session['order_nr'], session['tracking'], session['return_tracking'], session['status'])  # tracking, return_tracking, statsu CAN be empty
 
             # add new data to db
-            conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
-            c = conn.cursor()
+
             if session['status'] == 'shipped':
                 session['status'] = 'fulfilled'
-            query = f"UPDATE zalando_orders SET status = '{session['status']}', tracking_number = '{session['tracking']}', return_tracking_number = '{session['return_tracking']}' WHERE order_number = '{session['order_nr']}'"
-            c.execute(query)
-            conn.commit()
-            conn.close()
+            queue_query.append(f"UPDATE zalando_orders SET status = '{session['status']}', tracking_number = '{session['tracking']}', return_tracking_number = '{session['return_tracking']}' WHERE order_number = '{session['order_nr']}'")
+
         # import data from xlsx file, run worker to uploads all tracking to zalando.
         # show progress on html pag
         # when worker stops, remove from worker list and send mail to user
@@ -428,18 +407,8 @@ def orders_worker(delay):
                 return_tracking = single["attributes"]["return_tracking_number"]
                 items_amount = single["attributes"]["order_lines_count"]
 
-                ord = ZalandoOrders(order_number, zalando_id, final_time, final_end_time, order_price, currency,
-                                    first_name, last_name, address_line, city, zip_code, country_code, status, tracking,
-                                    return_tracking, items_amount)  # add order
-                db.session.add(ord)
-                try:
-                    db.session.commit()
-                    print(
-                        f"{order_number} added to Zalando orders {final_time}")  # if the order has already been added, skip it. If not add
-                except Exception as e:
-                    db.session.rollback()
-                    print(f"{order_number} skipped Zalando order {final_time}")
-                    # print(e)
+                query = f"INSERT INTO zalando_orders (order_number, zalando_id, price, currency, first_name, last_name, address_line_1, city, zip_code, country_code, status, tracking_number, return_tracking_number, items_amount, date, date_end) VALUES('{order_number}', '{zalando_id}', '{order_price}', '{currency}', '{first_name}', '{last_name}', '{address_line}', '{city}', '{zip_code}', '{country_code}', '{status}', '{tracking}', '{return_tracking}', '{items_amount}', '{final_time}', '{final_end_time}')"
+                queue_query.append(query)
 
         print("************************************\n")
         # save to file new date to import -2 hours (to be sure not to skip any lated order)
@@ -449,12 +418,32 @@ def orders_worker(delay):
             f.write(dt_string)
         time.sleep(delay)
 
+
+def db_queue():
+    while True:
+        conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
+        c = conn.cursor()
+        if queue_query:
+            for i, v in enumerate(queue_query):
+                print(v)
+                try:
+                    c.execute(v)
+                    conn.commit()
+                    queue_query.pop(i)
+                except Exception as e:
+                    print(f"Problem queue {e}")
+                    queue_query.pop(i)
+            conn.close()
+        else:
+            conn.close()
+            time.sleep(30)
+
 # function that starts the thread
 # workers.run_new_thread(name_of_worker, target function, params)
 def thread_starter():
     workers.run_new_thread("ZamowieniaZalando5m", orders_worker, 300)  # runs zalando orders worker
     workers.run_new_thread("ZamowieniaMiinto1h", miintoApi.orders_worker_miinto, 3600)  # runs miinto orders worker
-
+    workers.run_new_thread("DbQueue", db_queue)  # runs miinto orders worker
 
 if __name__ == '__main__':
     app.secret_key = ".."

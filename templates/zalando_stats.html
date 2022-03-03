@@ -41,7 +41,7 @@
          <a href="/products/" class="previous">Podglad ofert po ean</a>
          <a href="/tracking/" class="previous">Dodaj trackingi / statusy</a>
     </div>
-           <h3>Uruchomione workery:
+           <h3>Uruchomione workery (tasków w kolejce: {{queue}}):
             {%for worker in workers%}
                 {% if worker == "Brak" %}
                     <p style = "color: red">{{worker}}</p>
