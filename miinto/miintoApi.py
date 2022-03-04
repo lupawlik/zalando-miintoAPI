@@ -1,5 +1,5 @@
 import json, requests, time, os, sqlite3, yaml
-
+from __main__ import queue_query
 from datetime import datetime, timedelta, date
 from calendar import monthrange
 from collections import Counter
@@ -33,7 +33,6 @@ def currency_converter(to: str, date=''):
                 date = datetime.strptime(date, '%Y-%m-%d')
                 date = date - timedelta(days=1)
                 date = date.strftime('%Y-%m-%d')
-                print(date)
                 # check if is problem with api (if returns non stop 404)
                 counter_of_skipped_days += 1
                 if counter_of_skipped_days > 5:
@@ -93,7 +92,6 @@ def miinto_stats(country=None, year=None, month=None):
     # loads all available countries
     countries = load_countries()
     labels_counties_names = [co for co in countries]
-    print(labels_counties_names)
     # if year and month are not declared, get current year/month
     if not year:
         todays_date = date.today()
@@ -110,7 +108,6 @@ def miinto_stats(country=None, year=None, month=None):
         c = conn.cursor()
         # get all monts with current year
         time_labels = [f"{year}-0{x}" if x < 10 else f"{year}-{x}" for x in range(1, 13)]
-        print(time_labels)
         if not country or country == "all":
             query = f"SELECT * FROM miinto_orders_db WHERE strftime('%Y', date) = '{year}'"
         else:
@@ -180,7 +177,6 @@ def miinto_stats(country=None, year=None, month=None):
     c = conn.cursor()
     # get all months with current year
 
-    print(time_labels)
     if not country or country == "all":
         query = f"SELECT * FROM miinto_orders_db WHERE strftime('%Y', date) = '{year}'"
     else:
@@ -254,14 +250,7 @@ def orders_worker_miinto(delay):
 
             price_pln = round(price_in_order / coursers[currency.upper()], 2)
 
-            ord = MiintoOrdersDb(order_id, time_to_db, price_in_order, price_pln, currency, co, customer_name)
-            db.session.add(ord)
-            try:
-                db.session.commit()
-                print(f"{order_id} added to Miinto {co} orders")
-            except Exception as e:
-                db.session.rollback()
-                print(f"{order_id} skipped Miinto order")
+            queue_query.append(f"INSERT INTO miinto_orders_db(order_number, date, price, price_pln, currency, country, name) VALUES('{order_id}', '{time_to_db}', '{price_in_order}', '{price_pln}', '{currency}', '{co}', '{customer_name}')")
         return False
 
     while True:
@@ -405,7 +394,6 @@ def order_site_miinto(country="all", amount_on_site="500", offset="0", date_star
                 query = f"SELECT * FROM miinto_orders_db WHERE country = \"{session['country_name']}\" ORDER BY date DESC LIMIT {int(amount_on_site)} OFFSET {int(amount_on_site)*int(offset)}"
 
     visible_orders_count = int(amount_on_site), int(offset)  # used to calculate order number and offset number in jinja2
-    print(query)
     c.execute(query)
     orders = c.fetchall()
     return render_template("miinto_orders.html", orders=orders, visible_orders_count=visible_orders_count)

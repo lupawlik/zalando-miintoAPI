@@ -425,13 +425,16 @@ def db_queue():
         c = conn.cursor()
         if queue_query:
             for i, v in enumerate(queue_query):
-                print(v)
                 try:
                     c.execute(v)
                     conn.commit()
                     queue_query.pop(i)
+                    print(f"Powodzenie: {v}")
                 except Exception as e:
-                    print(f"Problem queue {e}")
+                    if "UNIQUE constraint failed: zalando_orders.order_number" in str(e):
+                        print(f"Rekord w bazie juz istnieje {v}")
+                    else:
+                        print(f"Queue error - {e}")
                     queue_query.pop(i)
             conn.close()
         else:
