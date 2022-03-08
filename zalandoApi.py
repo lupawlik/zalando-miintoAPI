@@ -17,6 +17,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mrktplc_data.db'
 zalandoApi = ZalandoCall()
 db = SQLAlchemy(app)
 
+# stores list of all query's to db - is used in queue
 queue_query = []
 from data_base_objects import Returns_db, ZalandoOrders
 import miinto.miintoApi as miintoApi
@@ -410,6 +411,16 @@ def orders_worker(delay):
                 query = f"INSERT INTO zalando_orders (order_number, zalando_id, price, currency, first_name, last_name, address_line_1, city, zip_code, country_code, status, tracking_number, return_tracking_number, items_amount, date, date_end) VALUES('{order_number}', '{zalando_id}', '{order_price}', '{currency}', '{first_name}', '{last_name}', '{address_line}', '{city}', '{zip_code}', '{country_code}', '{status}', '{tracking}', '{return_tracking}', '{items_amount}', '{final_time}', '{final_end_time}')"
                 queue_query.append(query)
 
+
+        # check all initial (not payed orders) for new payment and change status
+        conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
+        c = conn.cursor()
+        query = f"SELECT order_number, date FROM zalando_orders WHERE status = 'initial' ORDER BY date DESC"
+        c.execute(query)
+        initial_orders_db = list(c.fetchall())
+        conn.close()
+
+
         print("************************************\n")
         # save to file new date to import -2 hours (to be sure not to skip any lated order)
         now = datetime.datetime.now() - timedelta(hours=2)
@@ -448,6 +459,7 @@ def thread_starter():
     workers.run_new_thread("ZamowieniaMiinto1h", miintoApi.orders_worker_miinto, 3600)  # runs miinto orders worker
     workers.run_new_thread("DbQueue", db_queue)  # runs miinto orders worker
 
+
 if __name__ == '__main__':
     app.secret_key = ".."
     # run flask app and workers with threading. "0.0.0.0" for run in local network
@@ -457,4 +469,6 @@ if __name__ == '__main__':
     thread_controll = threading.Thread(target=thread_starter)
     thread_controll.deamon = True
     thread_controll.start()
+
+
 

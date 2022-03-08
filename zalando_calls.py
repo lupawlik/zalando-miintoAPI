@@ -53,8 +53,8 @@ class ZalandoCall(ZalandoRequest):
             data_tab.append(r)
         return data_tab
 
-    # return order from last hour, used in zalando orders worker
-    def get_order_to_date(self, date):
+    # return order created after given date, used in zalando orders worker
+    def get_order_to_date(self, date, status=None):
         date = date.strftime("%Y-%m-%dT%H:%M:%S")+"+01:00"
         print(date)
         # stores list of all data from all sites
@@ -64,6 +64,8 @@ class ZalandoCall(ZalandoRequest):
             'created_after': date,
             'include': 'order_lines',
             }
+        if status:
+            params['order_status'] = status
 
         r = self.place_request("GET", "/merchants/{merchant_id}/orders", params)
         list_of_all_orders.append(r)

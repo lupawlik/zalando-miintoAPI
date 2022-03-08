@@ -30,7 +30,7 @@ def zalando_stats_page(year=None, month=None, country='DE', orders_on_page=1000,
     c = conn.cursor()
 
     # get orders for given year and month
-    query = f"SELECT * FROM zalando_orders WHERE strftime('%Y', date) = '{year}' AND strftime('%m', date) = '{month}' AND country_code = '{country}' AND status != 'initial' ORDER BY date DESC"
+    query = f"SELECT * FROM zalando_orders WHERE strftime('%Y', date) = '{year}' AND strftime('%m', date) = '{month}' AND country_code = '{country}' AND status != 'initial' AND status != 'canceled' ORDER BY date DESC"
     c.execute(query)
     orders = list(c.fetchall())
 
