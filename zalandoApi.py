@@ -9,7 +9,7 @@ import pandas as pd
 
 from mail import send_mail
 from zalando_calls import ZalandoCall
-import workers
+import workers, queues
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mrktplc_data.db'
@@ -17,8 +17,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mrktplc_data.db'
 zalandoApi = ZalandoCall()
 db = SQLAlchemy(app)
 
-# stores list of all query's to db - is used in queue
-queue_query = []
+# instance of queue linked to database
+db_q = queues.DbQueue("mrktplc_data.db", 30)
+
 from data_base_objects import Returns_db, ZalandoOrders
 import miinto.miintoApi as miintoApi
 import zalando_statistics
@@ -163,11 +164,11 @@ def return_site():
                 # add order to db (order number, ean string, price(string))
                 order_id = one_final_product_id["order_number"]
                 now = datetime.datetime.utcnow()
-                queue_query.append(f"INSERT INTO returns_db(order_number, enas, date, price) VALUES('{order_id}', '{eans}', '{now}', '{str(price)}')")
+                db_q.add(f"INSERT INTO returns_db(order_number, enas, date, price) VALUES('{order_id}', '{eans}', '{now}', '{str(price)}')")
                 if eans == 'brak danych' or "Nie mozna wczytac eanu" in eans or not eans:
-                    queue_query.append(f"UPDATE zalando_orders SET returned_price = '{str(price)}', items_returned_amount = null WHERE order_number = '{order_id}'")
+                    db_q.add(f"UPDATE zalando_orders SET returned_price = '{str(price)}', items_returned_amount = null WHERE order_number = '{order_id}'")
                 else:
-                    queue_query.append(f"UPDATE zalando_orders SET returned_price = '{price}', items_returned_amount = {len(eans.split(' ')) - 1} WHERE order_number = '{order_id}'")
+                    db_q.add(f"UPDATE zalando_orders SET returned_price = '{price}', items_returned_amount = {len(eans.split(' ')) - 1} WHERE order_number = '{order_id}'")
 
             return render_template('returns.html', action_info=action_info) # action_info = shows info about request status
 
@@ -263,7 +264,7 @@ def zalando_labels_worker(data_set, worker_name, mail):
             report.append((i[0], r.status_code))
             # when success - update order in db
             query = f"UPDATE zalando_orders SET status = 'fulfilled', tracking_number = '{i[1]}', return_tracking_number = '{i[2]}' WHERE order_number = '{i[0]}'"
-            queue_query.append(query)
+            db_q.add(query)
 
         except:
             report.append((i[0], "404"))
@@ -300,7 +301,7 @@ def tracking_site():
 
             if session['status'] == 'shipped':
                 session['status'] = 'fulfilled'
-            queue_query.append(f"UPDATE zalando_orders SET status = '{session['status']}', tracking_number = '{session['tracking']}', return_tracking_number = '{session['return_tracking']}' WHERE order_number = '{session['order_nr']}'")
+            db_q.add(f"UPDATE zalando_orders SET status = '{session['status']}', tracking_number = '{session['tracking']}', return_tracking_number = '{session['return_tracking']}' WHERE order_number = '{session['order_nr']}'")
 
         # import data from xlsx file, run worker to uploads all tracking to zalando.
         # show progress on html pag
@@ -409,7 +410,7 @@ def orders_worker(delay):
                 items_amount = single["attributes"]["order_lines_count"]
 
                 query = f"INSERT INTO zalando_orders (order_number, zalando_id, price, currency, first_name, last_name, address_line_1, city, zip_code, country_code, status, tracking_number, return_tracking_number, items_amount, date, date_end) VALUES('{order_number}', '{zalando_id}', '{order_price}', '{currency}', '{first_name}', '{last_name}', '{address_line}', '{city}', '{zip_code}', '{country_code}', '{status}', '{tracking}', '{return_tracking}', '{items_amount}', '{final_time}', '{final_end_time}')"
-                queue_query.append(query)
+                db_q.add(query)
 
 
         # check all initial (not payed orders) for new payment and change status
@@ -419,8 +420,7 @@ def orders_worker(delay):
         c.execute(query)
         initial_orders_db = list(c.fetchall())
         conn.close()
-
-
+        print(initial_orders_db)
         print("************************************\n")
         # save to file new date to import -2 hours (to be sure not to skip any lated order)
         now = datetime.datetime.now() - timedelta(hours=2)
@@ -430,34 +430,12 @@ def orders_worker(delay):
         time.sleep(delay)
 
 
-def db_queue():
-    while True:
-        conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
-        c = conn.cursor()
-        if queue_query:
-            for i, v in enumerate(queue_query):
-                try:
-                    c.execute(v)
-                    conn.commit()
-                    queue_query.pop(i)
-                    print(f"Powodzenie: {v}")
-                except Exception as e:
-                    if "UNIQUE constraint failed: zalando_orders.order_number" in str(e):
-                        print(f"Rekord w bazie juz istnieje {v}")
-                    else:
-                        print(f"Queue error - {e}")
-                    queue_query.pop(i)
-            conn.close()
-        else:
-            conn.close()
-            time.sleep(30)
-
 # function that starts the thread
 # workers.run_new_thread(name_of_worker, target function, params)
 def thread_starter():
     workers.run_new_thread("ZamowieniaZalando5m", orders_worker, 300)  # runs zalando orders worker
     workers.run_new_thread("ZamowieniaMiinto1h", miintoApi.orders_worker_miinto, 3600)  # runs miinto orders worker
-    workers.run_new_thread("DbQueue", db_queue)  # runs miinto orders worker
+    workers.run_new_thread("DbQueue", db_q.start)  # runs miinto orders worker
 
 
 if __name__ == '__main__':
@@ -465,7 +443,6 @@ if __name__ == '__main__':
     # run flask app and workers with threading. "0.0.0.0" for run in local network
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)).start()
     db.create_all()
-
     thread_controll = threading.Thread(target=thread_starter)
     thread_controll.deamon = True
     thread_controll.start()

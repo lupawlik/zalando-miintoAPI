@@ -1,4 +1,4 @@
-from __main__ import app, db, queue_query
+from __main__ import app, db, db_q
 import sqlite3
 from calendar import monthrange
 from flask import Flask, render_template, redirect, url_for
@@ -74,4 +74,4 @@ def zalando_stats_page(year=None, month=None, country='DE', orders_on_page=1000,
     return render_template("zalando_stats.html", workers=workers.get_list_of_threads(), country=country, year=year,
                            month=month, days_labels=days_labels, order_per_day=order_number_per_day, return_per_day=returns_number_per_day,
                            orders=orders, price_sum_per_day=price_sum_per_day, returns_price_sum_per_day=returns_price_sum_per_day, returns=returns,
-                           orders_returned_each_day=orders_returned_each_day, returns_to_order_ratio=returns_to_order_ratio, queue=(len(queue_query)))
+                           orders_returned_each_day=orders_returned_each_day, returns_to_order_ratio=returns_to_order_ratio, queue=(db_q.get_number_of_task()))

@@ -1,5 +1,5 @@
 import json, requests, time, os, sqlite3, yaml
-from __main__ import queue_query
+from __main__ import db_q
 from datetime import datetime, timedelta, date
 from calendar import monthrange
 from collections import Counter
@@ -244,13 +244,20 @@ def orders_worker_miinto(delay):
             customer_name = order_data['billingInformation']['name']
             price_in_order = 0
             currency = order_data['currency']
-
+            names = ""
+            eans = ""
             for single_price in order_data['acceptedPositions']:
                 price_in_order += int(single_price['price']) / 100
+                single_name = single_price['item']['name']
+                if "'" in single_name:
+                    single_name = str(single_name).replace("'", " ")
+                if single_name:
+                    names += single_name +"; "
+                if single_price['item']['gtin']:
+                    eans += single_price['item']['gtin'] +"; "
 
             price_pln = round(price_in_order / coursers[currency.upper()], 2)
-
-            queue_query.append(f"INSERT INTO miinto_orders_db(order_number, date, price, price_pln, currency, country, name) VALUES('{order_id}', '{time_to_db}', '{price_in_order}', '{price_pln}', '{currency}', '{co}', '{customer_name}')")
+            db_q.add(f"INSERT INTO miinto_orders_db(order_number, date, price, price_pln, currency, country, name, products_names, eans) VALUES('{order_id}', '{time_to_db}', '{price_in_order}', '{price_pln}', '{currency}', '{co}', '{customer_name}', '{names}', '{eans}')")
         return False
 
     while True:
