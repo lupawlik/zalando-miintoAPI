@@ -248,13 +248,20 @@ def orders_worker_miinto(delay):
             currency = order_data['currency']
             names = ""
             eans = ""
+
             for single_price in order_data['acceptedPositions']:
                 price_in_order += int(single_price['price']) / 100
                 single_name = single_price['item']['name']
+                brand_name = ""
+                if single_price['item']['brand']:
+                    brand_name = single_price['item']['brand']+" - "
+                    if "'" in brand_name:
+                        brand_name = str(brand_name).replace("'", "''")
+
                 if "'" in single_name:
-                    single_name = str(single_name).replace("'", " ")
+                    single_name = str(single_name).replace("'", "''")
                 if single_name:
-                    names += single_name +"; "
+                    names += brand_name+single_name +"; "
 
                 if single_price['item']['gtin']:
                     eans += single_price['item']['gtin'] +"; "
