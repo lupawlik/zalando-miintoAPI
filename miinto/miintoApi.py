@@ -240,7 +240,9 @@ def orders_worker_miinto(delay):
             if created_date < date_to_import:
                 return True
 
+            main_id = order_data['id']
             order_id = order_data['parentOrder']['id']
+
             customer_name = order_data['billingInformation']['name']
             price_in_order = 0
             currency = order_data['currency']
@@ -253,11 +255,16 @@ def orders_worker_miinto(delay):
                     single_name = str(single_name).replace("'", " ")
                 if single_name:
                     names += single_name +"; "
+
                 if single_price['item']['gtin']:
                     eans += single_price['item']['gtin'] +"; "
+                elif not single_price['item']['gtin']:
+                    eans += "; "
 
             price_pln = round(price_in_order / coursers[currency.upper()], 2)
-            db_q.add(f"INSERT INTO miinto_orders_db(order_number, date, price, price_pln, currency, country, name, products_names, eans) VALUES('{order_id}', '{time_to_db}', '{price_in_order}', '{price_pln}', '{currency}', '{co}', '{customer_name}', '{names}', '{eans}')")
+            db_q.add(f"INSERT INTO miinto_orders_db(order_number, date, price, price_pln, currency, country, name, products_names, eans, main_id) VALUES('{order_id}', '{time_to_db}', '{price_in_order}', '{price_pln}', '{currency}', '{co}', '{customer_name}', '{names}', '{eans}', '{main_id}')")
+            #q = f"UPDATE miinto_orders_db SET products_names='{names}', eans='{eans}', main_id = '{main_id}' WHERE order_number = '{order_id}' "
+            #db_q.add(q)
         return False
 
     while True:

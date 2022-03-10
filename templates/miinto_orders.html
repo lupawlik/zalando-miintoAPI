@@ -83,22 +83,30 @@
                         <th><b>Zamowienie</b></th>
                         <th>Kraj</th>
                         <th>Numer zamowienia</th>
+                        <th>Id BL</th>
                         <th>Kwota</th>
                         <th>Waluta</th>
                         <th>Kwota w pln</th>
                         <th>Imię i nazwisko</th>
                         <th>Data</th>
+                        <th>Produkty</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for order in orders%}
                         {% set order_number = order[1] %}
+                        {% set main_id = order[10] %}
                         {% set order_country = order[6] %}
                         {% set order_price = order[3] %}
                         {% set order_price_pln = order[4] %}
                         {% set date = order[2] %}
                         {% set name = order[7] %}
                         {% set currency = order[5] %}
+                        {% set names = order[8] %}
+                        {% set names_list = names.split(";")[:-1] %}
+                        {% set eans = order[9] %}
+                        {% set eans_list = eans.split(";")[:-1] %}
+
 
                         <tr>
                             {% if visible_orders_count[0] == 0 %}
@@ -108,13 +116,24 @@
                             {% endif %}
                             <td>{{order_country}}</td>
                             <td>{{order_number}}</td>
+                            <td>{{main_id}}</td>
                             <td>{{order_price}}</td>
                             <td>{{currency}}</td>
                             <td>{{order_price_pln}}</td>
                             <td>{{name}}</td>
                             <td>{{date}}</td>
-
+                            <td>
+                                <table style="width: 100%;">
+                                    {% for product in names_list%}
+                                        <tr>
+                                          <td style="text-align: left">{{product}}</td>
+                                          <td style="text-align: right">{{eans_list[loop.index-1]}}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </table>
+                            </td>
                         </tr>
+
                     {% endfor %}
                 <tbody>
             </table>

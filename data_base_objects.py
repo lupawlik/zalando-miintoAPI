@@ -56,7 +56,7 @@ class ZalandoOrders(db.Model):
 
 # table with order on miinto
 class MiintoOrdersDb(db.Model):
-    id = db.Column('id', db.Integer, primary_key = True)
+    id = db.Column('id', db.Integer, primary_key=True)
     order_number = db.Column('order_number', db.String(30), nullable=False, unique=True)
     data = db.Column('date', db.DateTime, nullable=False)
     price = db.Column('price', db.String(16))
@@ -66,8 +66,10 @@ class MiintoOrdersDb(db.Model):
     name = db.Column('name', db.String(250))
     products_names = db.Column('products_names', db.String(1500))
     eans = db.Column('eans', db.String(1000))
+    main_id = db.Column('main_id', db.String(30), nullable=False, unique=True)
 
-    def __init__(self, order_number, data, price, price_pln, currency, country, name, products_names, eans):
+    def __init__(self, order_number, data, price, price_pln, currency, country, name, products_names, eans, main_id,):
+
         self.order_number = order_number
         self.data = data
         self.price = price
@@ -77,3 +79,4 @@ class MiintoOrdersDb(db.Model):
         self.name = name
         self.products_names = products_names
         self.eans = eans
+        self.main_id = main_id
