@@ -127,8 +127,18 @@
                                 <table style="width: 100%;">
                                     {% for product in names_list%}
                                         <tr>
-                                          <td style="text-align: left"><a href="https://www.miinto.{{order_country.split('-')[1]}}/p-link-{{ids_list[loop.index-1].strip()}}" target="_blank">[Oferta]</a> {{product}}</td>
-                                          <td style="text-align: right">{{eans_list[loop.index-1]}}</td>
+                                            {% if ids_list[loop.index-1] is defined%}
+                                                {% if order_country.split('-')[1] == 'CN'%}
+                                                    <td style="text-align: left"><a href="https://www.miinto.pl/p-link-{{ids_list[loop.index-1].strip()}}" target="_blank">[Oferta]</a> {{product}}</td>
+                                                {% else %}
+                                                    <td style="text-align: left"><a href="https://www.miinto.{{order_country.split('-')[1]}}/p-link-{{ids_list[loop.index-1].strip()}}" target="_blank">[Oferta]</a> {{product}}</td>
+                                                {% endif %}
+                                            {% else %}
+                                                <td style="text-align: left">{{product}}</td>
+
+                                            {% endif %}
+
+                                            <td style="text-align: right">{{eans_list[loop.index-1]}}</td>
                                         </tr>
                                     {% endfor %}
                                 </table>
