@@ -66,9 +66,10 @@ class MiintoOrdersDb(db.Model):
     name = db.Column('name', db.String(250))
     products_names = db.Column('products_names', db.String(1500))
     eans = db.Column('eans', db.String(1000))
+    products_id = db.Column('products_id', db.String(1500))
     main_id = db.Column('main_id', db.String(30), nullable=False, unique=True)
 
-    def __init__(self, order_number, data, price, price_pln, currency, country, name, products_names, eans, main_id,):
+    def __init__(self, order_number, data, price, price_pln, currency, country, name, products_names, eans, products_id, main_id,):
 
         self.order_number = order_number
         self.data = data
@@ -79,4 +80,5 @@ class MiintoOrdersDb(db.Model):
         self.name = name
         self.products_names = products_names
         self.eans = eans
+        self.products_id = products_id
         self.main_id = main_id

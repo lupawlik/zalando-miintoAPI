@@ -88,14 +88,14 @@
                         <th>Waluta</th>
                         <th>Kwota w pln</th>
                         <th>Imię i nazwisko</th>
-                        <th>Data</th>
                         <th>Produkty</th>
+                        <th>Data</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for order in orders%}
                         {% set order_number = order[1] %}
-                        {% set main_id = order[10] %}
+                        {% set main_id = order[11] %}
                         {% set order_country = order[6] %}
                         {% set order_price = order[3] %}
                         {% set order_price_pln = order[4] %}
@@ -106,6 +106,8 @@
                         {% set names_list = names.split(";")[:-1] %}
                         {% set eans = order[9] %}
                         {% set eans_list = eans.split(";")[:-1] %}
+                        {% set order_ids = order[10]%}
+                        {% set ids_list = order_ids.split(";")[:-1] %}
 
 
                         <tr>
@@ -114,24 +116,24 @@
                             {% else %}
                                 <td><b>{{loop.index+((visible_orders_count[0])*visible_orders_count[1])}}</b></td>
                             {% endif %}
-                            <td>{{order_country}}</td>
+                            <td>{{order_country.split('-')[1]}}</td>
                             <td>{{order_number}}</td>
                             <td>{{main_id}}</td>
                             <td>{{order_price}}</td>
                             <td>{{currency}}</td>
                             <td>{{order_price_pln}}</td>
                             <td>{{name}}</td>
-                            <td>{{date}}</td>
                             <td>
                                 <table style="width: 100%;">
                                     {% for product in names_list%}
                                         <tr>
-                                          <td style="text-align: left">{{product}}</td>
+                                          <td style="text-align: left"><a href="https://www.miinto.{{order_country.split('-')[1]}}/p-link-{{ids_list[loop.index-1].strip()}}" target="_blank">[Oferta]</a> {{product}}</td>
                                           <td style="text-align: right">{{eans_list[loop.index-1]}}</td>
                                         </tr>
                                     {% endfor %}
                                 </table>
                             </td>
+                            <td>{{date}}</td>
                         </tr>
 
                     {% endfor %}

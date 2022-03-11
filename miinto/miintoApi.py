@@ -248,7 +248,7 @@ def orders_worker_miinto(delay):
             currency = order_data['currency']
             names = ""
             eans = ""
-
+            miinto_offer_id = ""
             for single_price in order_data['acceptedPositions']:
                 price_in_order += int(single_price['price']) / 100
                 single_name = single_price['item']['name']
@@ -267,11 +267,12 @@ def orders_worker_miinto(delay):
                     eans += single_price['item']['gtin'] +"; "
                 elif not single_price['item']['gtin']:
                     eans += "; "
-
+                if single_price['item']['productId']:
+                    miinto_offer_id += single_price['item']['productId'] +"; "
             price_pln = round(price_in_order / coursers[currency.upper()], 2)
-            db_q.add(f"INSERT INTO miinto_orders_db(order_number, date, price, price_pln, currency, country, name, products_names, eans, main_id) VALUES('{order_id}', '{time_to_db}', '{price_in_order}', '{price_pln}', '{currency}', '{co}', '{customer_name}', '{names}', '{eans}', '{main_id}')")
-            #q = f"UPDATE miinto_orders_db SET products_names='{names}', eans='{eans}', main_id = '{main_id}' WHERE order_number = '{order_id}' "
-            #db_q.add(q)
+            #db_q.add(f"INSERT INTO miinto_orders_db(order_number, date, price, price_pln, currency, country, name, products_names, eans, products_id, main_id) VALUES('{order_id}', '{time_to_db}', '{price_in_order}', '{price_pln}', '{currency}', '{co}', '{customer_name}', '{names}', '{eans}', '{miinto_offer_id}', '{main_id}')")
+            q = f"UPDATE miinto_orders_db SET products_names='{names}', eans='{eans}', main_id = '{main_id}', products_id = '{miinto_offer_id}' WHERE order_number = '{order_id}' "
+            db_q.add(q)
         return False
 
     while True:
