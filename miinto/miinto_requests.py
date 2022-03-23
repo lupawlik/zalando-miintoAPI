@@ -96,7 +96,7 @@ class MiintoRequest:
             sign = self._creat_sign(method, path, timestamp, seed, url_params)
 
         if not body and method == "GET":
-            sign = self._creat_sign(method, path, timestamp, seed, body)  # parse parametres directly in body
+            sign = self._creat_sign(method, path, timestamp, seed, body)  # parse parameters directly in body
         # creat headers for miinto api
         headers = {
             'Miinto-Api-Auth-Seed': f"{seed}",

@@ -3,6 +3,19 @@
     <meta charset="utf-8">
     <title>Zalando - oferty</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+          <script type="text/javascript">
+        function selectRow(row)
+        {
+            var firstInput = row.getElementsByTagName('input')[0];
+            firstInput.checked = !firstInput.checked;
+        }
+        function toggle(source) {
+            checkboxes = document.getElementsByName('product_input');
+            for (var i = 0, n = checkboxes.length; i < n; i++) {
+                checkboxes[i].checked = source.checked;
+            }
+        }
+    </script>
   </head>
 <body>
      <div class="navbar">
@@ -18,48 +31,65 @@
    <input type="number" name="ean_number" min = 1>
    <button value="check" name="forwardBtn" type="submit">Wczytaj</button>
    </form>
-   
+     {% if info != '' %}
+     <b>Zmiany w api nastapily natychmiast. Na stronie zostana wyswietlone do kilku godzin</b><br>
+        {% for single_info in info %}
+            {% if single_info[1] == 'ACCEPTED' %}
+                {{single_info[0]}} zablokowane<br>
+            {% else %}
+                {{single_info[1]}} nie zablokowane<br>
+            {% endif %}
+        {% endfor %}
+     {% endif %}
+     {% if data !='' %}
+        <form action="/products/" method="post" id="form2" name="form2">
+            <div class="table-wrapper">
 
-    <div class="table-wrapper">
-          <table class="order_table" style="border: 1px solid black;">
-      
-              <thead>
-                  <tr>
-                      <th>Id zalando</th>
-                      <th>Ean</th>
-                      <th>Ilosc</th>
-                      <th>Cena</th>
-                      <th>Status</th>
-                      <th>Opis</th>
-                  </tr>
-              </thead>
-              <tbody>
-              {% for product in data%}
-                  <tr>
-                    {% if product == '' %}
-                        <td>Taki ean nie znajduje sie w ofertach zalando</td>
-                    {% else %}
-                        {% if not product.zalando_product_simple_id %}
-                            <td>-</td>
-                        {% else %}
-                            <td>{{product.zalando_product_simple_id}}</td>
-                        {% endif %} 
+                  <table class="order_table" style="border: 1px solid black;">
+                      <thead>
+                          <tr>
+                              <th><input type="checkbox" onClick="toggle(this)"/></th>
+                              <th>Id zalando</th>
+                              <th>Ean</th>
+                              <th>Ilosc</th>
+                              <th>Cena</th>
+                              <th>Status</th>
+                              <th>Opis</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          {% for product in data%}
+                              <tr ondblclick="selectRow(this)">
+                                  <td><input type="checkbox" class="product_input" name="product_input" value={{loop.index}}></td>
+                                {% if product == '' %}
+                                    <td>Taki ean nie znajduje sie w ofertach zalando</td>
+                                {% else %}
+                                    {% if not product.zalando_product_simple_id %}
+                                        <td>-</td>
+                                    {% else %}
+                                        <td>{{product.zalando_product_simple_id}}</td>
+                                    {% endif %}
 
-                        <td>{{product.ean}}</td>
-                        <td>{{product.offers[0].stock.amount}}</td>
-                        {% if not product.offers[0].price %}
-                            <td>Brak ceny</td>
-                        {% else %}
-                            <td>{{product.offers[0].price.regular_price.amount}} {{product.offers[0].price.regular_price.currency}}</td>
-                        {% endif %} 
-                        <td>{{product.offers[0].offer_status[0].status_cluster}}</td>
-                        <td>{{product.offers[0].offer_status[0].short_description.en}}</td>
-                        
-                    {% endif %}          
-                  </tr>
-              {% endfor %}
-              <tbody>
-          </table>
-      </div>
+                                    <td>{{product.ean}}</td>
+                                    <td>{{product.offers[0].stock.amount}}</td>
+                                    {% if not product.offers[0].price %}
+                                        <td>Brak ceny</td>
+                                    {% else %}
+                                        <td>{{product.offers[0].price.regular_price.amount}} {{product.offers[0].price.regular_price.currency}}</td>
+                                    {% endif %}
+                                    <td>{{product.offers[0].offer_status[0].status_cluster}}</td>
+                                    <td>{{product.offers[0].offer_status[0].short_description.en}}</td>
+
+                                {% endif %}
+                              </tr>
+                          {% endfor %}
+                      <tbody>
+                  </table>
+
+                <button name="forwardBtn" value="process" type="submit">Zablokuj zaznaczone oferty</button>
+            {% endif %}
+          </div>
+
+    </form>
 </body>
 </html>

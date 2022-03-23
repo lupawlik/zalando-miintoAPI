@@ -70,7 +70,6 @@ class MiintoOrdersDb(db.Model):
     main_id = db.Column('main_id', db.String(30), nullable=False, unique=True)
 
     def __init__(self, order_number, data, price, price_pln, currency, country, name, products_names, eans, products_id, main_id,):
-
         self.order_number = order_number
         self.data = data
         self.price = price

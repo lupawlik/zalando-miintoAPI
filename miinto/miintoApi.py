@@ -3,8 +3,9 @@ from __main__ import db_q
 from datetime import datetime, timedelta, date
 from calendar import monthrange
 from collections import Counter
+import pandas as pd
 from miinto.miinto_requests import create_mcc, MiintoRequest
-from flask import request, redirect, url_for, render_template, session
+from flask import request, redirect, url_for, render_template, session, send_file
 from __main__ import app, db
 
 
@@ -67,11 +68,10 @@ def load_countries():
 
 class MiintoApi(MiintoRequest):
 
-    # return singler order by id
+    # return single order by id
     def get_order(self, country, id):
         return self.place_request("GET", f"/shops/{country}/orders/{id}")
 
-    # return list of countries
     def get_order_list(self, country, status="accepted", offset="0", limit="50"):
         data = {
             "status[]": status,
@@ -298,7 +298,6 @@ def orders_worker_miinto(delay):
                 date_to_import = time.strptime(date_to_import, "%Y-%m-%d %H:%M:%S")
 
         countries = load_countries()
-
         for co in countries:
             country_id = countries[co]
             order_list = MiintoApi().get_order_list(country_id, "accepted", "0", "0")
@@ -337,7 +336,7 @@ def orders_worker_miinto(delay):
 def order_site_miinto(country="all", amount_on_site="500", offset="0", date_start="all", date_end="all", order_number=''):
     conn = sqlite3.connect("mrktplc_data.db", check_same_thread=False)
     c = conn.cursor()
-
+    session['order_data'] = ""
     if request.method == "POST":
         # handle a next and prev button
         if request.form['forwardBtn'] == 'nex':  # add 1 to offset
@@ -419,6 +418,13 @@ def order_site_miinto(country="all", amount_on_site="500", offset="0", date_star
     visible_orders_count = int(amount_on_site), int(offset)  # used to calculate order number and offset number in jinja2
     c.execute(query)
     orders = c.fetchall()
+    if request.method == "POST":
+        if request.form['forwardBtn'] == 'download_report':
+            db_df = pd.read_sql_query(query, conn)  # get data returns between date
+            db_df.to_excel('miinto_orders_raport.xlsx', index=False, header=['id', 'kod_kraju', 'numer_zamowienia', 'numer_bl', 'kwota', 'waluta', 'kwota_pln', 'imie_nazwisko', 'marka', 'eany', 'id_produktow', 'data'],
+                           columns=['id', 'country', 'order_number', 'main_id', 'price', 'currency', 'price_pln', 'name', 'products_names', 'eans', 'products_id', 'date'])
+            return send_file('miinto_orders_raport.xlsx', as_attachment=True)
+
     return render_template("miinto_orders.html", orders=orders, visible_orders_count=visible_orders_count)
 
 

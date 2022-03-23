@@ -6,7 +6,6 @@ from flask import Flask, request, redirect, url_for, session, jsonify, render_te
 from flask_sqlalchemy import SQLAlchemy
 import sqlite3
 import pandas as pd
-
 from mail import send_mail
 from zalando_calls import ZalandoCall
 import workers, queues
@@ -197,14 +196,35 @@ def return_site():
 @app.route("/products/", methods=['POST', 'GET'])
 @app.route("/products/<ean>", methods=['POST', 'GET'])
 def product_site(ean=0):
+    info = ""
     if request.method == "POST":
         if request.form['forwardBtn'] == 'check':
             req = request.form
             ean_number = req.get('ean_number')
-            return redirect(url_for('product_site', ean=ean_number))
+            if not ean_number:
+                session['ean_data'] = ""
+                return redirect(url_for('product_site'))
 
-    data = zalandoApi.get_all_product_by_one_ean(ean)  # returns product data
-    return render_template('products.html', data=data)
+            if len(ean_number) == 12:
+                ean_number = f'0{ean_number}'
+            session['ean_data'] = zalandoApi.get_all_product_by_one_ean(ean_number)
+            return redirect(url_for('product_site'))
+
+        if request.form['forwardBtn'] == "process":  # run when user check checkbox with product thats want to return
+            req = request.form
+            product_input = req.getlist('product_input')
+            if product_input:
+                eans_to_block = []
+                quantity_list = []
+                for i in product_input:
+                    eans_to_block.append(session['ean_data'][int(i)-1]['ean'])
+                    quantity_list.append(0)
+                info = zalandoApi.set_quantity(eans_to_block, quantity_list, "01924c48-49bb-40c2-9c32-ab582e6db6f4")
+                session['ean_data'] = ""
+    try:
+        return render_template('products.html', data=session['ean_data'], info=info)
+    except KeyError:
+        return render_template('products.html', info=info)
 
 # url to block offer by ean
 # on zalando blocking is by set quantity on 0

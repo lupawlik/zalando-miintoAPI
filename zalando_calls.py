@@ -376,7 +376,6 @@ class ZalandoCall(ZalandoRequest):
         for i in chunked_list:
             payload = {"items": []}
             # go for every ean in list and add data
-            print(i)
             for j, v in enumerate(i):
                 payload["items"].append(
                     {
@@ -388,7 +387,6 @@ class ZalandoCall(ZalandoRequest):
             # updates ean with given quantity
             url = "/merchants/{merchant_id}" +"/stocks"
             r = dict(self.place_request("POST", url, payload))
-            print(r)
 
             # get ean and status list and save in report_data
             # if code == 0, stock is changed
@@ -401,8 +399,6 @@ class ZalandoCall(ZalandoRequest):
             # wait 1 minute if is more than 1000 eans
             if len(list(chunked_list)) > 1:
                 time.sleep(61)
-        print("Successfully changed quantity")
-        print(report_data)
         workers.del_from_list("ZerowanieIlosciZalando")
         return report_data
 
