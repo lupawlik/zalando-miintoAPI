@@ -10,7 +10,7 @@ from __main__ import app, db
 
 
 # set main courses, used when course converter not working
-coursers = {"EUR": 0.22, "DKK": 1.63, "PLN": 1, "SEK": 2.29, "CNY": 1.38}
+coursers = {"EUR": 0.22, "DKK": 1.63, "PLN": 1, "SEK": 2.29, "CNY": 1.38, "NOK": 2.01}
 
 from data_base_objects import MiintoOrdersDb
 
@@ -281,6 +281,7 @@ def orders_worker_miinto(delay):
         coursers["DKK"] = currency_converter("DKK")
         coursers["SEK"] = currency_converter("SEK")
         coursers["CNY"] = currency_converter("CNY")
+        coursers["NOK"] = currency_converter("NOK")
         coursers["PLN"] = 1
         # sprawdz ostatnia date importu (z pliku)
         # jezeli plik nie istnieje wczytaj wszystkie zamowienia
